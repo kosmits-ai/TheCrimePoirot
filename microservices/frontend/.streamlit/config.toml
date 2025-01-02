@@ -1,0 +1,3 @@
+#Customize Streamlit App to Dark mode
+[theme]
+base="dark"
