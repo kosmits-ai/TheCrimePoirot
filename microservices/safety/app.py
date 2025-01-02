@@ -84,3 +84,50 @@ def run_safety():
         return jsonify({"status": "error", "tool": "safety", "message": f"Error running safety scan: {e.stderr}", "data": None}), 500
     except Exception as e:
         return jsonify({"status": "error", "tool": "safety", "message": f"An unexpected error occurred: {str(e)}", "data": None}), 500
+
+
+@app.route('/Safety/<repo_name>/final_results', methods=['GET'])
+def safety_final(repo_name):
+    try:
+        # Retrieve Safety report from MongoDB
+        response = requests.get(f"http://{MONGODB_SERVICE_URL}/safety/reports/{repo_name}")
+        
+        if response.status_code == 200:
+            response_data = response.json()
+            report = response_data.get("report")  # Extract the "report" field
+            
+            if report:
+                # Parse the JSON string in the "report" field
+                report_data = json.loads(report)
+                vulnerabilities = report_data.get("vulnerabilities", [])  # Defaults to an empty list
+                
+                # Create the final results document
+                document = {
+                    "tool": "safety",
+                    "repo_name": repo_name,
+                    "vulnerabilities": len(vulnerabilities)  # Number of vulnerabilities
+                }
+
+                # Insert the summarized results into the `final_results` collection
+                insert_result = requests.post(f"http://{MONGODB_SERVICE_URL}/final_results/reports", json=document)
+                
+                if insert_result.status_code == 200:
+                    return jsonify({"status": "success", "message": "Results stored successfully"}), 200
+                else:
+                    return jsonify({"status": "error", "message": "Failed to insert results into final_results"}), 500
+            
+            else:
+                return jsonify({"status": "error", "message": "Report not found in the response"}), 404
+        
+        else:
+            return jsonify({"status": "error", "message": f"Failed to retrieve Safety report for '{repo_name}'"}), response.status_code
+    
+    except json.JSONDecodeError:
+        return jsonify({"status": "error", "message": "Error decoding the JSON report from MongoDB"}), 500
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+
+if __name__ == '__main__':
+    app.run(debug=True, host="0.0.0.0", port=5003)
