@@ -113,3 +113,51 @@ if not all([GITLEAKS_PATH, BASE_DIR, MONGODB_SERVICE_URL]):
             "message": str(e),
             "data": None
         }), 500
+    
+
+@app.route('/Gitleaks/<repo_name>/final_results', methods=['GET'])
+def gitleaks_final(repo_name):
+    try:
+        response = requests.get(f"http://{MONGODB_SERVICE_URL}/gitleaks/reports/{repo_name}")
+        
+        if response.status_code == 200:
+            response_data = response.json()
+            report = response_data.get("report")  # Extract the report
+            
+            if report:
+                # Parse the nested JSON string in the "report" field
+                report_data = json.loads(report)
+                leaks = report_data.get("leaks")
+                
+                if leaks == "No leaks found":
+                    document = {"tool": "gitleaks","repo_name": repo_name, "leaks": 0}
+                    result = requests.post(f"http://{MONGODB_SERVICE_URL}/final_results/reports", json=document)
+                    if result.status_code == 200:
+                        return jsonify({"status": "success", "report": leaks}), 200
+                    else:
+                        return jsonify({"status": "error", "message": "Failed to insert results into final_results"}), 500
+                
+                elif isinstance(leaks, list):  # If leaks is a list of leaks
+                    document = {"tool": "gitleaks","repo_name": repo_name, "leaks": len(leaks)}
+                    result = requests.post(f"http://{MONGODB_SERVICE_URL}/final_results/reports", json=document)
+                    if result.status_code == 200:
+                        return jsonify({"status": "success", "report": leaks}), 200
+                    else:
+                        return jsonify({"status": "error", "message": "Failed to insert results into final_results"}), 500
+                
+                else:
+                    return jsonify({"status": "error", "message": "'leaks' key not found in the report"}), 404
+            else:
+                return jsonify({"status": "error", "message": "Report not found in the response"}), 404
+        
+        else:
+            return jsonify({"status": "error", "message": f"Failed to retrieve Gitleaks report for '{repo_name}'"}), response.status_code
+    
+    except json.JSONDecodeError:
+        return jsonify({"status": "error", "message": "Error decoding the JSON report from MongoDB"}), 500
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+if __name__ == "__main__":
+    app.run(debug=True, host="0.0.0.0", port=5001)
