@@ -88,6 +88,9 @@ if not all([GITLEAKS_PATH, BASE_DIR, MONGODB_SERVICE_URL]):
             json=document                                       
         )
 
+        if response.status_code != 200:
+            return jsonify({"status": "error", "tool": "gitleaks", "message": "Failed to store results in MongoDB", "data": None}), 500
+
         return jsonify({
             "status": "success",
             "tool": "gitleaks",
