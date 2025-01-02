@@ -84,7 +84,7 @@ if not all([GITLEAKS_PATH, BASE_DIR, MONGODB_SERVICE_URL]):
 
         #Post results to gitleaks collection.
         response = requests.post(
-            f"http://{MONGODB_SERVICE_URL}/gitleaks/insert",
+            f"http://{MONGODB_SERVICE_URL}/gitleaks/reports",
             json=document                                       
         )
 

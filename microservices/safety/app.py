@@ -62,7 +62,7 @@ def run_safety():
         }
 
         response = requests.post(
-            f"http://{MONGODB_SERVICE_URL}/safety/insert",
+            f"http://{MONGODB_SERVICE_URL}/safety/reports",
             json=document
         )
 

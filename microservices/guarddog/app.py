@@ -79,7 +79,7 @@ def analyze_repo():
 
         # Store results in MongoDB
         response = requests.post(
-            f"http://{MONGODB_SERVICE_URL}/guarddog/insert",
+            f"http://{MONGODB_SERVICE_URL}/guarddog/reports",
             json=document
         )
         if response.status_code != 200:

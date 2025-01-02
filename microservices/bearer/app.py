@@ -79,7 +79,7 @@ def run_bearer():
 
             # Store results in MongoDB
             response = requests.post(
-                f"http://{MONGODB_SERVICE_URL}/bearer/insert",
+                f"http://{MONGODB_SERVICE_URL}/bearer/reports",
                 json=scan_summary
             )
 
@@ -105,7 +105,7 @@ def run_bearer():
                 "vulnerabilities": 0
             }
             response = requests.post(
-                f"http://{MONGODB_SERVICE_URL}/bearer/insert",
+                f"http://{MONGODB_SERVICE_URL}/bearer/reports",
                 json=scan_summary
             )
 
