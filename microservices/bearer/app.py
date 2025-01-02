@@ -135,4 +135,55 @@ def run_bearer():
             "data": None
         }), 500
 
+@app.route('/Bearer/<repo_name>/final_results', methods=['GET'])
+def bearer_final(repo_name):
+    try:
+        # Retrieve Bearer report from MongoDB
+        response = requests.get(f"http://{MONGODB_SERVICE_URL}/bearer/reports/{repo_name}")
+        
+        if response.status_code == 200:
+            response_data = response.json()
+            report = response_data.get("report")  # Extract the "report" field
+            
+            if report:
+                # Parse the JSON string in the "report" field
+                report_data = json.loads(report)
+                
+                # Retrieve severity levels, defaulting to 0 if not found
+                critical = report_data.get("critical", 0)
+                high = report_data.get("high", 0)
+                medium = report_data.get("medium", 0)
+                low = report_data.get("low", 0)
+                
+                # Prepare the document for insertion
+                document = {
+                    "tool": "bearer",
+                    "repo_name": repo_name,
+                    "critical": critical,
+                    "high": high,
+                    "medium": medium,
+                    "low": low
+                }
+                
+                # Insert the results into the `final_results` collection
+                insert_result = requests.post(f"http://{MONGODB_SERVICE_URL}/final_results/reports", json=document)
+                
+                if insert_result.status_code == 200:
+                    return jsonify({"status": "success", "message": "Results stored successfully"}), 200
+                else:
+                    return jsonify({"status": "error", "message": "Failed to insert results into final_results"}), 500
+            
+            else:
+                return jsonify({"status": "error", "message": "Report not found in the response"}), 404
+        
+        else:
+            return jsonify({"status": "error", "message": f"Failed to retrieve Bearer report for '{repo_name}'"}), response.status_code
     
+    except json.JSONDecodeError:
+        return jsonify({"status": "error", "message": "Error decoding the JSON report from MongoDB"}), 500
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+if __name__ == '__main__':
+    app.run(debug=True, host="0.0.0.0", port=5004)
