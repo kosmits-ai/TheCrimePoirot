@@ -23,6 +23,7 @@ if not all([GITLEAKS_PATH, BASE_DIR, MONGODB_SERVICE_URL]):
     raise EnvironmentError("Missing required environment variables. Ensure GITLEAKS_PATH, BASE_DIR, and MONGODB_SERVICE_URL are set.")
 
 @app.route('/analyze',methods=['POST'])
+def run_gitleaks():
     """
     Run Gitleaks on a repository and store the results in MongoDB.
     """

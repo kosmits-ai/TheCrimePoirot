@@ -1,8 +1,12 @@
 from flask import Flask, jsonify, request
 import requests
+import json 
+import os 
+from dotenv import load_dotenv
 
 app = Flask(__name__)
 
+load_dotenv()
 
 SERVICES = json.loads(os.getenv("SERVICES"))
 
