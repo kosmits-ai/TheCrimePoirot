@@ -16,9 +16,7 @@ What steps to follow in order to use TheCrimePoirot:
 2. Create venv in project root directory: `python3 -m venv venv`
 3. In **venv**: `pip install -r requirements.txt`
 4. In root directory: `git clone https://github.com/gitleaks/gitleaks`
-5. If you have Go installed:
-- `cd gitleaks`
-- `make build`
+5. If you have Go installed: `cd gitleaks`,  `make build`
 6.  Authentication for **Safety** :
   - `safety auth`
 7. Install **Bearer** package:
