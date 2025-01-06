@@ -85,7 +85,7 @@ def run_gitleaks():
 
         #Post results to gitleaks collection.
         response = requests.post(
-            f"http://{MONGODB_SERVICE_URL}/gitleaks/reports",
+            f"{MONGODB_SERVICE_URL}/gitleaks/reports",
             json=document                                       
         )
 
@@ -119,7 +119,7 @@ def run_gitleaks():
 @app.route('/Gitleaks/<repo_name>/final_results', methods=['GET'])
 def gitleaks_final(repo_name):
     try:
-        response = requests.get(f"http://{MONGODB_SERVICE_URL}/gitleaks/reports/{repo_name}")
+        response = requests.get(f"{MONGODB_SERVICE_URL}/gitleaks/reports/{repo_name}")
         
         if response.status_code == 200:
             response_data = response.json()
@@ -132,7 +132,7 @@ def gitleaks_final(repo_name):
                 
                 if leaks == "No leaks found":
                     document = {"tool": "gitleaks","repo_name": repo_name, "leaks": 0}
-                    result = requests.post(f"http://{MONGODB_SERVICE_URL}/final_results/reports", json=document)
+                    result = requests.post(f"{MONGODB_SERVICE_URL}/final_results/reports", json=document)
                     if result.status_code == 200:
                         return jsonify({"status": "success", "report": leaks}), 200
                     else:
@@ -140,7 +140,7 @@ def gitleaks_final(repo_name):
                 
                 elif isinstance(leaks, list):  # If leaks is a list of leaks
                     document = {"tool": "gitleaks","repo_name": repo_name, "leaks": len(leaks)}
-                    result = requests.post(f"http://{MONGODB_SERVICE_URL}/final_results/reports", json=document)
+                    result = requests.post(f"{MONGODB_SERVICE_URL}/final_results/reports", json=document)
                     if result.status_code == 200:
                         return jsonify({"status": "success", "report": leaks}), 200
                     else:
