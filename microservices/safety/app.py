@@ -14,6 +14,21 @@ load_dotenv()
 MONGODB_SERVICE_URL = os.getenv("MONGO_SERVICE_URL")
 BASE_DIR = os.getenv("BASE_DIR", "/tmp/repos")
 
+'''
+def authenticate_safety():
+    try:
+        print("Authenticating with Safety...")
+        result = subprocess.run(['safety', 'auth'], capture_output=True, text=True)
+        if result.returncode != 0:
+            raise Exception(f"Safety authentication failed: {result.stderr}")
+        print("Successfully authenticated with Safety.")
+    except Exception as e:
+        print(f"Error during authentication: {str(e)}")
+        raise
+
+# Call authenticate_safety when the app starts
+authenticate_safety()
+'''
 @app.route('/analyze', methods=['POST'])
 def run_safety():
     
@@ -29,11 +44,15 @@ def run_safety():
             shutil.rmtree(repo_path)  # Remove existing repository in order to get the latest commit every time.
         
         subprocess.run(["git", "clone", repo_url, repo_path], check=True)
-
+        '''
         os.chdir(repo_path)
         print(f"Running Safety on {repo_path}...")
+        '''
+        result = subprocess.run(['safety', 'scan'], cwd=repo_path, capture_output=True, text=True)
+        print("Safety stdout:", result.stdout)
+        print("Safety stderr:", result.stderr)
 
-        result = subprocess.run(['safety', 'scan'], capture_output=True, text=True)
+
 
         # Process the output
         lines = result.stdout.splitlines()
@@ -62,7 +81,7 @@ def run_safety():
         }
 
         response = requests.post(
-            f"http://{MONGODB_SERVICE_URL}/safety/reports",
+            f"{MONGODB_SERVICE_URL}/safety/reports",
             json=document
         )
 
@@ -90,7 +109,7 @@ def run_safety():
 def safety_final(repo_name):
     try:
         # Retrieve Safety report from MongoDB
-        response = requests.get(f"http://{MONGODB_SERVICE_URL}/safety/reports/{repo_name}")
+        response = requests.get(f"{MONGODB_SERVICE_URL}/safety/reports/{repo_name}")
         
         if response.status_code == 200:
             response_data = response.json()
@@ -109,7 +128,7 @@ def safety_final(repo_name):
                 }
 
                 # Insert the summarized results into the `final_results` collection
-                insert_result = requests.post(f"http://{MONGODB_SERVICE_URL}/final_results/reports", json=document)
+                insert_result = requests.post(f"{MONGODB_SERVICE_URL}/final_results/reports", json=document)
                 
                 if insert_result.status_code == 200:
                     return jsonify({"status": "success", "message": "Results stored successfully"}), 200
