@@ -1,0 +1,89 @@
+services:
+  mongo-service:
+    build:
+      context: ./microservices/mongodb
+    ports:
+      - "5000:5000"  # MongoDB service's API port
+    env_file:
+      - .env
+    depends_on: []
+
+  gitleaks:
+    build:
+      context: ./microservices/gitleaks
+    ports:
+      - "5001:5001"
+    env_file:
+      - .env
+    depends_on:
+      - mongo-service
+
+  guarddog:
+    build:
+      context: ./microservices/guarddog
+    ports:
+      - "5002:5002"
+    env_file:
+      - .env
+    depends_on:
+      - mongo-service
+
+  safety:
+    build:
+      context: ./microservices/safety
+    ports:
+      - "5003:5003"
+    env_file:
+      - .env
+    depends_on:
+      - mongo-service
+
+  bearer:
+    build:
+      context: ./microservices/bearer
+    ports:
+      - "5004:5004"
+    env_file:
+      - .env
+    depends_on:
+      - mongo-service
+    #mem_limit: 2g  # Limit to 1GB of RAM (you can adjust this value)
+    #mem_reservation: 1g  # Minimum RAM the container should have
+
+  calculate_percentile:
+    build:
+      context: ./microservices/calculate_percentile
+    ports:
+      - "5005:5005"
+    env_file:
+      - .env
+    volumes:
+      - ./report.csv:/app/report.csv  # Bind mount for report file
+    depends_on:
+      - mongo-service
+
+  api_gateway:
+    build:
+      context: ./microservices/api_gateway
+    ports:
+      - "5007:5007"
+    env_file:
+      - .env
+    depends_on:
+      - gitleaks
+      - guarddog
+      - safety
+      - bearer
+      - calculate_percentile
+
+  frontend:
+    build:
+      context: ./microservices/frontend
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    volumes:
+      - ./images:/app/images
+    depends_on:
+      - api_gateway
