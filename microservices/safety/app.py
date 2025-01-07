@@ -43,12 +43,16 @@ def run_safety():
         if os.path.exists(repo_path):
             shutil.rmtree(repo_path)  # Remove existing repository in order to get the latest commit every time.
         
-        subprocess.run(["git", "clone", repo_url, repo_path], check=True)
+        subprocess.run(["git", "clone", repo_url, repo_path],capture_output=True, text=True, check=True)
         '''
         os.chdir(repo_path)
         print(f"Running Safety on {repo_path}...")
         '''
-        result = subprocess.run(['safety', 'scan'], cwd=repo_path, capture_output=True, text=True)
+        safety_api_key = os.getenv("SAFETY_API_KEY")
+        if not safety_api_key:
+            raise EnvironmentError("SAFETY_API_KEY environment variable is not set.")
+
+        result = subprocess.run(['safety', 'scan','--key', safety_api_key], cwd=repo_path, capture_output=True, text=True)
         print("Safety stdout:", result.stdout)
         print("Safety stderr:", result.stderr)
 
