@@ -11,7 +11,7 @@ app = Flask(__name__)
 load_dotenv()
 
 # Path to CSV file
-csv_path = os.getenv("CSV_PATH", "/tmp/data.csv")
+csv_path = os.getenv("CSV_PATH")
 
 # MongoDB service URL
 MONGODB_SERVICE_URL = os.getenv("MONGO_SERVICE_URL")
@@ -30,7 +30,7 @@ def gitleaks_percentile(repo_name):
             return jsonify({"error": "CSV file does not contain 'Total Repo Leaks' column"}), 404
 
         # Fetch gitleaks final results from MongoDB service
-        response = requests.get(f"http://{MONGODB_SERVICE_URL}/final_results/gitleaks/{repo_name}")
+        response = requests.get(f"{MONGODB_SERVICE_URL}/final_results/gitleaks/{repo_name}")
         if response.status_code == 200:
             response_data = response.json()
             leaks = response_data.get("leaks")
@@ -69,7 +69,7 @@ def guarddog_percentile(repo_name):
             return jsonify({"error": "CSV file does not contain 'Guarddog findings' column"}), 404
 
         # Fetch guarddog final results from MongoDB service
-        response = requests.get(f"http://{MONGODB_SERVICE_URL}/final_results/guarddog/{repo_name}")
+        response = requests.get(f"{MONGODB_SERVICE_URL}/final_results/guarddog/{repo_name}")
         if response.status_code == 200:
             response_data = response.json()
             
@@ -108,7 +108,7 @@ def safety_percentile(repo_name):
         if 'Safety findings' not in data.columns:
             return jsonify({"error": "CSV file does not contain 'Safety findings' column"}), 404
 
-        response = requests.get(f"http://{MONGODB_SERVICE_URL}/final_results/safety/{repo_name}")
+        response = requests.get(f"{MONGODB_SERVICE_URL}/final_results/safety/{repo_name}")
         if response.status_code == 200:
             response_data = response.json()
             
@@ -152,7 +152,7 @@ def bearer_percentile(repo_name):
             return jsonify({"error": f"CSV file is missing the following columns: {', '.join(missing_columns)}"}), 404
         
         # Fetch the Bearer results from MongoDB
-        response = requests.get(f"http://{MONGODB_SERVICE_URL}/final_results/bearer/{repo_name}")
+        response = requests.get(f"{MONGODB_SERVICE_URL}/final_results/bearer/{repo_name}")
         if response.status_code == 200:
             response_data = response.json()
 
