@@ -87,3 +87,20 @@ services:
       - ./images:/app/images
     depends_on:
       - api_gateway
+  
+  update_db:
+    build:
+      context: ./microservices/update_db
+    ports:
+      - "5008:5008"
+    env_file:
+      - .env
+    depends_on:
+      - mongo-service
+      - gitleaks
+      - guarddog
+      - safety
+      - bearer
+      - api_gateway
+    volumes:
+      - ./report.csv:/app/report.csv
