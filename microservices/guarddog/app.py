@@ -46,6 +46,8 @@ def analyze_repo():
             capture_output=True,
             text=True
         )
+        print(process.stdout)
+        print(process.stderr)
         if process.returncode != 0:
             return jsonify({"status": "error", "tool": "guarddog", "message": process.stderr.strip(), "data": None}), 500
 

@@ -57,7 +57,8 @@ def run_gitleaks():
             capture_output=True,
             text=True
         )
-
+        print(result.stdout)
+        print(result.stderr)
         if result.returncode == 0:
             # No leaks found
             document = {"repo_name": repo_name, "leaks": []}
