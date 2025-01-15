@@ -103,6 +103,7 @@ repo_urls = {
     "PaddleOCR": "https://github.com/PaddlePaddle/PaddleOCR.git"
 }
 
+CSV_HEADER = ["Repo_Name", "Total Repo Leaks", "Guarddog findings", "Safety findings", "Critical Vulns", "High Vulns", "Medium Vulns", "Low Vulns"]
 app = Flask(__name__)
 
 load_dotenv('.env')
@@ -180,6 +181,65 @@ def update_db():
         
         except Exception as e:
             print(f"An error occurred for {repo}: {e}")
+
+
+@app.route('/create_db', methods=['POST'])
+def create_db():
+    # Open the CSV file in write mode to clear its content and write the header
+    with open(CSV_PATH, "w", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerow(CSV_HEADER)  # Write the header first
+
+    # Loop over all repositories
+    for repo, url in repo_urls.items():
+        try:
+            # Preparing the payload
+            payload = {
+                "repo_url": url,
+                "tools": ["Gitleaks", "Guarddog", "Safety", "Bearer"]
+            }
+
+            # Sending the request to the API Gateway to analyze the repository
+            response = requests.post(f"{API_GATEWAY}/analyze", json=payload)
+            
+            if response.status_code == 200:
+                # Get the response data
+                response_data = response.json()
+
+                # Extract the data for each tool
+                bearer_data = response_data['results']['Bearer']['data']['data']
+                gitleaks_data = response_data['results']['Gitleaks']['data']['data']
+                guarddog_data = response_data['results']['Guarddog']['data']['data']
+                safety_data = response_data['results']['Safety']['data']['data']
+
+                # Extract specific values
+                critical = bearer_data['critical']
+                high = bearer_data['high']
+                medium = bearer_data['medium']
+                low = bearer_data['low']
+                bearer_vulnerabilities = len(bearer_data['vulnerabilities']) if isinstance(bearer_data['vulnerabilities'], list) else bearer_data['vulnerabilities']
+                gitleaks_leaks = len(gitleaks_data['leaks']) if isinstance(gitleaks_data['leaks'], list) else gitleaks_data['leaks']
+                guarddog_results = 0 if guarddog_data['results'] == 'No suspicious findings' else (len(guarddog_data['results']) if isinstance(guarddog_data['results'], list) else guarddog_data['results'])
+                safety_vulnerabilities = len(safety_data['vulnerabilities']) if isinstance(safety_data['vulnerabilities'], list) else safety_data['vulnerabilities']
+
+                # Print the extracted data for verification
+                print(f"Repo Name: {repo}")
+                print(f"Bearer: Critical={critical}, High={high}, Medium={medium}, Low={low}, Vulnerabilities={bearer_vulnerabilities}")
+                print(f"Gitleaks Leaks: {gitleaks_leaks}")
+                print(f"Guarddog Results: {guarddog_results}")
+                print(f"Safety Vulnerabilities: {safety_vulnerabilities}")
+
+                # Step 2: Append new data to the CSV (after the header)
+                with open(CSV_PATH, "a", newline="") as file:  # Open the file in append mode to add new data
+                    writer = csv.writer(file)
+                    writer.writerow([repo, gitleaks_leaks, guarddog_results, safety_vulnerabilities, critical, high, medium, low])
+                print("New data has been inserted into the CSV file.")
+            else:
+                print(f"Error with analysis for {repo}: {response.text}")
+        
+        except Exception as e:
+            print(f"An error occurred for {repo}: {e}")
+
 
 if __name__ == '__main__':
     app.run(debug=True, host="0.0.0.0", port=5008)
