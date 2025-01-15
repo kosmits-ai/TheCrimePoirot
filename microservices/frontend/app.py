@@ -60,21 +60,23 @@ def main():
     
     # Home Tab
     with tabs[0]:
-        st.subheader("Welcome to CrimePoirot!")
         st.markdown(
             """
-            ### 🔑 Features
-            - Detects secrets using **GitLeaks**
-            - Identifies supply chain risks with **Guarddog**
-            - Checks dependencies for vulnerabilities via **Safety**
-            - Scans codebases for sensitive data with **Bearer**
-            
-            ### 🚀 How to use:
-            1. Enter a GitHub repository URL.
-            2. Select which tools you want to run.
-            3. Based on your choice, you have to define the according weights.
-            4. Available tools are: Gitleaks, Guarddog, Safety, Bearer.
-            5. The sum of the corresponding weights must be equal to 1.
+            ### 🔑 **Key Features of CrimePoirot**
+
+            - **Secrets Detection**: Utilizes **GitLeaks** to uncover exposed secrets and credentials in your repositories.
+            - **Supply Chain Risk Assessment**: Employs **Guarddog** to identify potential risks in dependencies and supply chains.
+            - **Dependency Vulnerability Scanning**: Leverages **Safety** to analyze and detect vulnerabilities in project dependencies.
+            - **Sensitive Data Analysis**: Uses **Bearer** to scan codebases for sensitive data exposure, ensuring robust data security.
+
+            ### 🚀 **How to Use CrimePoirot**
+
+            1. **Enter the GitHub Repository URL**: Provide the URL of the repository you want to analyze.
+            2. **Select the Tools to Run**: Choose from the available tools based on your specific needs.
+            - The available tools are: **GitLeaks**, **Guarddog**, **Safety**, and **Bearer**.
+            3. **Define Weights for Selected Tools**: Assign weights to each selected tool to customize the trust score calculation. 
+            - Ensure the sum of all weights equals **1**.
+            4. **Run the Analysis**: Click the button to analyze the repository and view the trust score along with detailed results.
             
             """  
         )
@@ -117,34 +119,34 @@ def main():
 
         # Collect weights
         if selected_tools["Gitleaks"]:
-            gitleaks_weight = get_weight_input("Gitleaks", "0-1")
+            gitleaks_weight = get_weight_input("Gitleaks", "Recommended: 0.3")
             if gitleaks_weight is not None:
                 weights["Gitleaks"] = gitleaks_weight
 
         if selected_tools["Guarddog"]:
-            guarddog_weight = get_weight_input("Guarddog", "0-1")
+            guarddog_weight = get_weight_input("Guarddog", "Recommended: 0.1")
             if guarddog_weight is not None:
                 weights["Guarddog"] = guarddog_weight
 
         if selected_tools["Safety"]:
-            safety_weight = get_weight_input("Safety", "0-1")
+            safety_weight = get_weight_input("Safety", "Recommended: 0.1")
             if safety_weight is not None:
                 weights["Safety"] = safety_weight
 
         if selected_tools["Bearer"]:
-            bearer_critical_weight = get_weight_input("Bearer critical vulnerabilities", "0-1")
+            bearer_critical_weight = get_weight_input("Bearer critical vulnerabilities", "Recommended: 0.2")
             if bearer_critical_weight is not None:
                 weights["Bearer - Critical"] = bearer_critical_weight
 
-            bearer_high_weight = get_weight_input("Bearer high vulnerabilities", "0-1")
+            bearer_high_weight = get_weight_input("Bearer high vulnerabilities", "Recommended: 0.15")
             if bearer_high_weight is not None:
                 weights["Bearer - High"] = bearer_high_weight
 
-            bearer_medium_weight = get_weight_input("Bearer medium vulnerabilities", "0-1")
+            bearer_medium_weight = get_weight_input("Bearer medium vulnerabilities", "Recommended: 0.1")
             if bearer_medium_weight is not None:
                 weights["Bearer - Medium"] = bearer_medium_weight
 
-            bearer_low_weight = get_weight_input("Bearer low vulnerabilities", "0-1")
+            bearer_low_weight = get_weight_input("Bearer low vulnerabilities", "Recommended: 0.05")
             if bearer_low_weight is not None:
                 weights["Bearer - Low"] = bearer_low_weight
 
@@ -277,34 +279,6 @@ def main():
                     st.error("Error: Unable to connect to the API Gateway.")
                 except Exception as e:
                     st.error(f"An unexpected error occurred: {e}")
-    
-    container_names = [
-    "thecrimepoirot-gitleaks-1",
-    "thecrimepoirot-guarddog-1",
-    "thecrimepoirot-safety-1",
-    "thecrimepoirot-bearer-1"
-    ]   
-
-
-
-    def get_docker_logs(container_name):
-        """
-        Get logs for a specific Docker container.
-        """
-        try:
-            logs = subprocess.check_output(["docker", "logs", "-f", container_name], stderr=subprocess.STDOUT)
-            return logs.decode('utf-8')
-        except subprocess.CalledProcessError as e:
-            return f"Error: {e.output.decode('utf-8')}"
-
-    # Function to continuously fetch and update logs in Streamlit
-    def fetch_logs(container_names, logs_placeholder):
-        while True:
-            for container_name in container_names:
-                logs = get_docker_logs(container_name)
-                logs_placeholder.text(logs)  # Update the placeholder with logs
-                time.sleep(2)  # Sleep for a short interval before fetching the next log chunk
-
                     
     with tabs[2]:
         st.subheader("About CrimePoirot DataBase")
@@ -317,17 +291,43 @@ def main():
             This score will help the owner/ developer to have a quick measure to check about how safe is the repository.\n\n
             """
         )
-        st.markdown(
-            """
-            ### What happens when you update the DataBase?
-            By clicking the **"Update DataBase"** button, you will trigger the process that updates the repository trust score database. 
-            This action will:
-            1. Scan listed repositories that are added to the system.
-            2. Evaluate them using security parameters like leaks (Gitleaks), malicious indications (Guarddog), vulnerable packages (Safety), critical, high, medium, low vulnerabilities (Bearer).\n
-            This ensures that the latest data is incorporated into the system, providing the most accurate trust score evaluations for your repository.\n
-            In addition, it makes the database more robust, flexible, and reliable for future evaluations.\n
-            """
-        )
+        
+
+        st.markdown("""
+            ### **Create Database Button**
+
+            The **Create Database** button is designed to initialize and populate the CrimePoirot database. It performs the following tasks:
+
+            1. **Report Initialization**: Delete existing report.csv and create a new one with the required headers. 
+            2. **Data Ingestion**: Runs predefined repositories ( located in `/microservices/update_db/app.py`) analyses  and stores the results in their corresponding collections.
+            3. **Percentile Recalculation**: Calculates percentiles for each tool based on the new set of metrics from the analyzed repositories.
+            
+            This feature is used for setting up the database for the first time or starting with a clean slate.
+
+            ---
+
+            ### **Update Database Button**
+
+            The **Update Database** button is used to update the existing CrimePoirot database with new or modified repository data. It performs the following operations:
+
+            1. **Repository Update**: Runs an analysis on a specified list of Python repositories located in `/microservices/update_db/app.py`.
+            2. **CSV File Update**: Updates the `report.csv` file with the latest metrics from the analyzed repositories.
+            3. **Percentile Recalculation**: Recalculates percentiles based on the updated metrics in the CSV file, ensuring accurate trust score computations.
+
+            This feature is used for maintaining an up-to-date database and incorporating new repositories into the analysis without starting over.
+
+            ---
+
+            ### **Key Differences**
+            | Feature              | Create Database                     | Update Database                       |
+            |----------------------|-------------------------------------|---------------------------------------|
+            | **Purpose**          | Create new report.csv  | Add to the existing report.csv new repository metrics |
+            | **Use Case**         | First-time setup or complete reset   | Periodic updates or adding repositories |
+
+            Both buttons are critical for managing the CrimePoirot database, ensuring flexibility and scalability in repository trustworthiness analysis.
+            """)
+
+        
         ############    KEIMENO GIA TO CREATE DATABASE
         update_db_button = st.button("Update DataBase")
         if update_db_button:
@@ -345,16 +345,6 @@ def main():
                         except ValueError:
                             print("Response is not in JSON format")
                             print(response.text)  # Print raw content if it's not JSON
-                        
-                        logs_placeholder = st.empty()
-                        
-                        # Start a thread to fetch logs from multiple containers
-                        logs_thread = threading.Thread(target=fetch_logs, args=(container_names, logs_placeholder))
-                        logs_thread.daemon = True  # Ensure the thread will close when the app does
-                        logs_thread.start()
-
-                        st.text("Fetching logs...")
-
                     else:
                         st.error(f"Error updating DataBase: {response.status_code}")
                         st.text(response.text)
@@ -398,15 +388,6 @@ def main():
                 except Exception as e:
                     st.error(f"An unexpected error occurred: {e}")
         
-        workflow_path = os.getenv("WORKFLOW_IMAGE_PATH")
-        histograms_path = os.getenv("HISTOGRAMS_IMAGE_PATH")
-        
-        st.markdown("##### Creation workflow of DataBase:")
-        st.image(workflow_path, use_container_width=True)
-        
-        st.markdown("##### Histograms of DataBase Features:")
-        st.image(histograms_path, use_container_width=True)
-
 
 
     # About Tab
