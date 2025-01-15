@@ -4,11 +4,14 @@ import re
 from dotenv import load_dotenv
 import os 
 import requests 
+import time
+
+
 
 load_dotenv()
 
 API_GATEWAY_URL = os.getenv("API_GATEWAY_URL")
-
+UPDATE_DB_URL = os.getenv("UPDATE_DB_URL")
 def main():
     st.set_page_config(
         page_title="CrimePoirot",
@@ -40,6 +43,10 @@ def main():
             color: #95A5A6;
             font-size: 0.9em;
         }
+        .stButton>button {
+        width: 300px;  /* Set the button width */
+        height: 50px;  /* Set the button height */
+    }
         </style>
         """,
         unsafe_allow_html=True
@@ -270,7 +277,33 @@ def main():
                     st.error("Error: Unable to connect to the API Gateway.")
                 except Exception as e:
                     st.error(f"An unexpected error occurred: {e}")
+    
+    container_names = [
+    "thecrimepoirot-gitleaks-1",
+    "thecrimepoirot-guarddog-1",
+    "thecrimepoirot-safety-1",
+    "thecrimepoirot-bearer-1"
+    ]   
 
+
+
+    def get_docker_logs(container_name):
+        """
+        Get logs for a specific Docker container.
+        """
+        try:
+            logs = subprocess.check_output(["docker", "logs", "-f", container_name], stderr=subprocess.STDOUT)
+            return logs.decode('utf-8')
+        except subprocess.CalledProcessError as e:
+            return f"Error: {e.output.decode('utf-8')}"
+
+    # Function to continuously fetch and update logs in Streamlit
+    def fetch_logs(container_names, logs_placeholder):
+        while True:
+            for container_name in container_names:
+                logs = get_docker_logs(container_name)
+                logs_placeholder.text(logs)  # Update the placeholder with logs
+                time.sleep(2)  # Sleep for a short interval before fetching the next log chunk
 
                     
     with tabs[2]:
@@ -279,17 +312,101 @@ def main():
             """
             The main idea behind this project was building a tool that can check for various parameters which affect the security trust for a specific repository.
             After evaluating the findings of Gitleaks, GuardDog, Safety, Bearer for 100 random repositories, we build a csv report which contains the values-findings for all security parameters.
-            In every new repository we decide to scan,we find the percentage of 100 scanned repositories which have values-findings smaller than those of the new repository.
+            In every new repository we decide to scan, we find the percentage of 100 scanned repositories which have values-findings smaller than those of the new repository.
             According to this percentile, after defining the corresponding weights, a trust score will be calculated.
             This score will help the owner/ developer to have a quick measure to check about how safe is the repository.\n\n
             """
         )
+        st.markdown(
+            """
+            ### What happens when you update the DataBase?
+            By clicking the **"Update DataBase"** button, you will trigger the process that updates the repository trust score database. 
+            This action will:
+            1. Scan listed repositories that are added to the system.
+            2. Evaluate them using security parameters like leaks (Gitleaks), malicious indications (Guarddog), vulnerable packages (Safety), critical, high, medium, low vulnerabilities (Bearer).\n
+            This ensures that the latest data is incorporated into the system, providing the most accurate trust score evaluations for your repository.\n
+            In addition, it makes the database more robust, flexible, and reliable for future evaluations.\n
+            """
+        )
+        ############    KEIMENO GIA TO CREATE DATABASE
+        update_db_button = st.button("Update DataBase")
+        if update_db_button:
+            with st.spinner("Updating DataBase...This will take some hours."):
+                try:
+                    # Send POST request to the update_db service
+                    response = requests.post(f"{UPDATE_DB_URL}/update_db")
+                    
+                    # Check if the request was successful
+                    if response.status_code == 200:
+                        st.success("DataBase updated successfully.")
+                        try:
+                            # Attempt to parse JSON response
+                            print(response.json())  # This prints the JSON response from the API
+                        except ValueError:
+                            print("Response is not in JSON format")
+                            print(response.text)  # Print raw content if it's not JSON
+                        
+                        logs_placeholder = st.empty()
+                        
+                        # Start a thread to fetch logs from multiple containers
+                        logs_thread = threading.Thread(target=fetch_logs, args=(container_names, logs_placeholder))
+                        logs_thread.daemon = True  # Ensure the thread will close when the app does
+                        logs_thread.start()
+
+                        st.text("Fetching logs...")
+
+                    else:
+                        st.error(f"Error updating DataBase: {response.status_code}")
+                        st.text(response.text)
+
+                except requests.ConnectionError:
+                    st.error("Error: Unable to connect to the API Gateway.")
+                except Exception as e:
+                    st.error(f"An unexpected error occurred: {e}")
+        create_db_button = st.button("Create DataBase")
+        if create_db_button:
+            with st.spinner("Creating DataBase...This will take some hours."):
+                try:
+                    # Send POST request to the update_db service
+                    response = requests.post(f"{UPDATE_DB_URL}/create_db")
+                    
+                    # Check if the request was successful
+                    if response.status_code == 200:
+                        st.success("DataBase created successfully.")
+                        try:
+                            # Attempt to parse JSON response
+                            print(response.json())  # This prints the JSON response from the API
+                        except ValueError:
+                            print("Response is not in JSON format")
+                            print(response.text)  # Print raw content if it's not JSON
+                        
+                        logs_placeholder = st.empty()
+                        
+                        # Start a thread to fetch logs from multiple containers
+                        logs_thread = threading.Thread(target=fetch_logs, args=(container_names, logs_placeholder))
+                        logs_thread.daemon = True  # Ensure the thread will close when the app does
+                        logs_thread.start()
+
+                        st.text("Fetching logs...")
+
+                    else:
+                        st.error(f"Error creating DataBase: {response.status_code}")
+                        st.text(response.text)
+
+                except requests.ConnectionError:
+                    st.error("Error: Unable to connect to the API Gateway.")
+                except Exception as e:
+                    st.error(f"An unexpected error occurred: {e}")
+        
         workflow_path = os.getenv("WORKFLOW_IMAGE_PATH")
         histograms_path = os.getenv("HISTOGRAMS_IMAGE_PATH")
+        
         st.markdown("##### Creation workflow of DataBase:")
-        st.image(workflow_path,use_container_width= True)
+        st.image(workflow_path, use_container_width=True)
+        
         st.markdown("##### Histograms of DataBase Features:")
         st.image(histograms_path, use_container_width=True)
+
 
 
     # About Tab
