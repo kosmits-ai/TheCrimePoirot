@@ -1,0 +1,435 @@
+openapi: 3.0.0
+info:
+  title: CrimePoirot API
+  description: API for managing security tool reports and storing final results in MongoDB
+  version: 1.0.0
+paths:
+  /{tool_reports}/reports:
+    post:
+      summary: Insert a report for a specific tool
+      parameters:
+        - name: tool_reports
+          in: path
+          required: true
+          description: The name of the tool (e.g., gitleaks, guarddog)
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                repo_name:
+                  type: string
+                data:
+                  type: object
+            example:
+              repo_name: "my-repository"
+              data: 
+                field1: "value1"
+                field2: "value2"
+      responses:
+        200:
+          description: Document inserted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  id:
+                    type: string
+              example:
+                status: "success"
+                message: "Document inserted"
+                id: "507f191e810c19729de860ea"
+        500:
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                status: "error"
+                message: "An error occurred during insertion"
+
+  /{tool_reports}/reports/{repo_name}:
+    get:
+      summary: Retrieve a specific report by repo_name
+      parameters:
+        - name: tool_reports
+          in: path
+          required: true
+          description: The name of the tool (e.g., gitleaks, guarddog)
+          schema:
+            type: string
+        - name: repo_name
+          in: path
+          required: true
+          description: The repository name
+          schema:
+            type: string
+      responses:
+        200:
+          description: Report found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  report:
+                    type: object
+              example:
+                status: "success"
+                report: 
+                  repo_name: "my-repository"
+                  tool: "gitleaks"
+                  leaks:
+                    - leak_type: "Hardcoded password"
+                      description: "Sensitive data found in commit"
+        404:
+          description: Report not found
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                status: "error"
+                message: "Report not found"
+        500:
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                status: "error"
+                message: "An error occurred during retrieval"
+
+    put:
+      summary: Update a specific report by repo_name
+      parameters:
+        - name: tool_reports
+          in: path
+          required: true
+          description: The name of the tool (e.g., gitleaks, guarddog)
+          schema:
+            type: string
+        - name: repo_name
+          in: path
+          required: true
+          description: The repository name
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: object
+            example:
+              data:
+                field1: "updated_value1"
+                field2: "updated_value2"
+      responses:
+        200:
+          description: Document updated
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                status: "success"
+                message: "Document updated"
+        404:
+          description: Report not found
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                status: "error"
+                message: "Report not found"
+        500:
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                status: "error"
+                message: "An error occurred during update"
+
+    delete:
+      summary: Delete a specific report by repo_name
+      parameters:
+        - name: tool_reports
+          in: path
+          required: true
+          description: The name of the tool (e.g., gitleaks, guarddog)
+          schema:
+            type: string
+        - name: repo_name
+          in: path
+          required: true
+          description: The repository name
+          schema:
+            type: string
+      responses:
+        200:
+          description: Document deleted
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                status: "success"
+                message: "Document deleted"
+        404:
+          description: Report not found
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                status: "error"
+                message: "Report not found"
+        500:
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                status: "error"
+                message: "An error occurred during deletion"
+
+  /final_results/gitleaks/{repo_name}:
+    get:
+      summary: Retrieve gitleaks results for a repository
+      parameters:
+        - name: repo_name
+          in: path
+          required: true
+          description: The repository name
+          schema:
+            type: string
+      responses:
+        200:
+          description: Gitleaks results found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  repo_name:
+                    type: string
+                  tool:
+                    type: string
+                  leaks:
+                    type: array
+                    items:
+                      type: object
+              example:
+                status: "success"
+                repo_name: "my-repository"
+                tool: "gitleaks"
+                leaks:
+                  - leak_type: "Hardcoded password"
+                    description: "Sensitive data found in commit"
+        404:
+          description: Report not found
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                status: "error"
+                message: "Report not found for the given repo and tool"
+        500:
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                status: "error"
+                message: "An error occurred during retrieval"
+
+  /final_results/guarddog/{repo_name}:
+    get:
+      summary: Retrieve guarddog results for a repository
+      parameters:
+        - name: repo_name
+          in: path
+          required: true
+          description: The repository name
+          schema:
+            type: string
+      responses:
+        200:
+          description: Guarddog results found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  repo_name:
+                    type: string
+                  tool:
+                    type: string
+                  malicious_indications:
+                    type: array
+                    items:
+                      type: string
+              example:
+                status: "success"
+                repo_name: "my-repository"
+                tool: "guarddog"
+                malicious_indications:
+                  - "Malicious commit detected"
+                  - "Suspicious file changes"
+        404:
+          description: Report not found
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                status: "error"
+                message: "Report not found for the given repo and tool"
+        500:
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                status: "error"
+                message: "An error occurred during retrieval"
+
+  /final_results/safety/{repo_name}:
+    get:
+      summary: Retrieve safety results for a repository
+      parameters:
+        - name: repo_name
+          in: path
+          required: true
+          description: The repository name
+          schema:
+            type: string
+      responses:
+        200:
+          description: Safety results found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  repo_name:
+                    type: string
+                  tool:
+                    type: string
+                  vulnerabilities:
+                    type: array
+                    items:
+                      type: object
+              example:
+                status: "success"
+                repo_name: "my-repository"
+                tool: "safety"
+                vulnerabilities:
+                  - vulnerability: "CVE-2020-1234"
+                    severity: "high"
+                    description: "Security vulnerability found"
+        404:
+          description: Report not found
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                status: "error"
+                message: "Report not found for the given repo and tool"
+        500:
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                status: "error"
+                message: "An error occurred during retrieval"
+
+  /final_results/bearer/{repo_name}:
+    get:
+      summary: Retrieve bearer results for a repository
+      parameters:
+        - name: repo_name
+          in: path
+          required: true
+          description: The repository name
+          schema:
+            type: string
+      responses:
+        200:
+          description: Bearer results found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  repo_name:
+                    type: string
+                  tool:
+                    type: string
+                  critical_vulnerabilities:
+                    type: integer
+                  high_vulnerabilities:
+                    type: integer
+                  medium_vulnerabilities:
+                    type: integer
+                  low_vulnerabilities:
+                    type: integer
+              example:
+                status: "success"
+                repo_name: "my-repository"
+                tool: "bearer"
+                critical_vulnerabilities: 2
+                high_vulnerabilities: 5
+                medium_vulnerabilities: 10
+                low_vulnerabilities: 20
+        404:
+          description: Report not found
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                status: "error"
+                message: "Report not found for the given repo and tool"
+        500:
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                status: "error"
+                message: "An error occurred during retrieval"

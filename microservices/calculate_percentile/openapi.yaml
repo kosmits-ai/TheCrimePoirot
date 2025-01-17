@@ -1,0 +1,236 @@
+openapi: 3.0.1
+info:
+  title: CrimePoirot Percentile API
+  description: API for calculating percentiles for various security tools (Gitleaks, Guarddog, Safety, Bearer) based on repository analysis data.
+  version: 1.0.0
+paths:
+  /percentile/Gitleaks/{repo_name}:
+    get:
+      summary: Calculate Gitleaks percentile for a repository
+      parameters:
+        - in: path
+          name: repo_name
+          required: true
+          schema:
+            type: string
+          description: The name of the repository for which the Gitleaks percentile is calculated
+      responses:
+        '200':
+          description: Successfully calculated Gitleaks percentile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Successfully calculated gitleaks percentile."
+                  repo_name:
+                    type: string
+                    example: "example-repo"
+                  leaks:
+                    type: integer
+                    example: 5
+                  percentile:
+                    type: integer
+                    example: 85
+        '404':
+          description: CSV file not found or missing necessary columns, or report data is incomplete
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "CSV file does not contain 'Total Repo Leaks' column"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "An unexpected error occurred: {error_message}"
+  /percentile/Guarddog/{repo_name}:
+    get:
+      summary: Calculate Guarddog percentile for a repository
+      parameters:
+        - in: path
+          name: repo_name
+          required: true
+          schema:
+            type: string
+          description: The name of the repository for which the Guarddog percentile is calculated
+      responses:
+        '200':
+          description: Successfully calculated Guarddog percentile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Successfully calculated guarddog percentile."
+                  repo_name:
+                    type: string
+                    example: "example-repo"
+                  Guarddog_findings:
+                    type: integer
+                    example: 3
+                  percentile:
+                    type: integer
+                    example: 75
+        '404':
+          description: CSV file not found or missing necessary columns, or report data is incomplete
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "CSV file does not contain 'Guarddog findings' column"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "An unexpected error occurred: {error_message}"
+  /percentile/Safety/{repo_name}:
+    get:
+      summary: Calculate Safety percentile for a repository
+      parameters:
+        - in: path
+          name: repo_name
+          required: true
+          schema:
+            type: string
+          description: The name of the repository for which the Safety percentile is calculated
+      responses:
+        '200':
+          description: Successfully calculated Safety percentile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Successfully calculated safety percentile."
+                  repo_name:
+                    type: string
+                    example: "example-repo"
+                  Safety_findings:
+                    type: integer
+                    example: 10
+                  percentile:
+                    type: integer
+                    example: 65
+        '404':
+          description: CSV file not found or missing necessary columns, or report data is incomplete
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "CSV file does not contain 'Safety findings' column"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "An unexpected error occurred: {error_message}"
+  /percentile/Bearer/{repo_name}:
+    get:
+      summary: Calculate Bearer percentile for a repository
+      parameters:
+        - in: path
+          name: repo_name
+          required: true
+          schema:
+            type: string
+          description: The name of the repository for which the Bearer percentile is calculated
+      responses:
+        '200':
+          description: Successfully calculated Bearer percentiles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Successfully calculated Bearer percentiles."
+                  repo_name:
+                    type: string
+                    example: "example-repo"
+                  critical_vulnerabilities:
+                    type: integer
+                    example: 2
+                  critical_percentile:
+                    type: integer
+                    example: 60
+                  high_vulnerabilities:
+                    type: integer
+                    example: 3
+                  high_percentile:
+                    type: integer
+                    example: 75
+                  medium_vulnerabilities:
+                    type: integer
+                    example: 5
+                  medium_percentile:
+                    type: integer
+                    example: 80
+                  low_vulnerabilities:
+                    type: integer
+                    example: 7
+                  low_percentile:
+                    type: integer
+                    example: 90
+        '404':
+          description: CSV file not found or missing necessary columns, or report data is incomplete
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "CSV file is missing the following columns: Critical Vulns, High Vulns, Medium Vulns, Low Vulns"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "An unexpected error occurred: {error_message}"

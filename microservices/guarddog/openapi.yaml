@@ -1,0 +1,155 @@
+openapi: 3.0.0
+info:
+  title: CrimePoirot API
+  description: API documentation for the CrimePoirot project. This API enables repository analysis using Guarddog and integration with MongoDB.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:5002
+    description: Local development server for Guarddog analysis
+
+paths:
+  /analyze:
+    post:
+      summary: Run Guarddog on a repository
+      description: Clones a Git repository, runs Guarddog to check dependencies for malicious indications  and stores the results in Guarddog collection of MongoDB.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                repo_url:
+                  type: string
+                  description: URL of the Git repository to analyze.
+                  example: "https://github.com/example/repo.git"
+      responses:
+        '200':
+          description: Guarddog analysis completed successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  tool:
+                    type: string
+                    example: "Guarddog"
+                  message:
+                    type: string
+                    example: "Analysis complete"
+                  data:
+                    type: object
+                    properties:
+                      repo_name:
+                        type: string
+                        example: "repo"
+                      results:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            rule_id:
+                              type: string
+                              example: "repository_integrity_mismatch"
+                            output_text:
+                              type: string
+                              example: "Some suspicious output"
+        '400':
+          description: Bad request due to missing repository URL.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  message:
+                    type: string
+                    example: "Repository URL is required."
+        '404':
+          description: `requirements.txt` not found in the repository.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  message:
+                    type: string
+                    example: "requirements.txt not found in the repository."
+        '500':
+          description: Internal server error, subprocess failure, or MongoDB storage failure.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  tool:
+                    type: string
+                    example: "Guarddog"
+                  message:
+                    type: string
+                    example: "An internal server error occurred."
+
+  /Guarddog/{repo_name}/final_results:
+    get:
+      summary: Retrieve final Guarddog results for a repository
+      description: Fetches the Guarddog analysis results from MongoDB for a given repository and stores the final results in the `final_results` collection.
+      parameters:
+        - name: repo_name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Name of the repository.
+          example: "repo"
+      responses:
+        '200':
+          description: Successfully retrieved and processed the Guarddog results.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                    example: "Results stored successfully"
+        '404':
+          description: Report or results key not found in MongoDB.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  message:
+                    type: string
+                    example: "'results' key not found in the report."
+        '500':
+          description: Internal server error or failure to insert results into the `final_results` collection.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  message:
+                    type: string
+                    example: "An internal server error occurred."
