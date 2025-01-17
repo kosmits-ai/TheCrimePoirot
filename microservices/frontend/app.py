@@ -5,7 +5,8 @@ from dotenv import load_dotenv
 import os 
 import requests 
 import time
-
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 load_dotenv()
@@ -117,23 +118,23 @@ def main():
                     st.error(f"⚠️ Please enter a valid numeric value for {tool_name} weight.")
             return None
 
-        # Collect weights
-        if selected_tools["Gitleaks"]:
+        is_all_selected = all(selected_tools.values())
+
+        # Collect weights with dynamic placeholders
+        if is_all_selected:
+            # All tools selected: Use recommended placeholders
             gitleaks_weight = get_weight_input("Gitleaks", "Recommended: 0.3")
             if gitleaks_weight is not None:
                 weights["Gitleaks"] = gitleaks_weight
 
-        if selected_tools["Guarddog"]:
             guarddog_weight = get_weight_input("Guarddog", "Recommended: 0.1")
             if guarddog_weight is not None:
                 weights["Guarddog"] = guarddog_weight
 
-        if selected_tools["Safety"]:
             safety_weight = get_weight_input("Safety", "Recommended: 0.1")
             if safety_weight is not None:
                 weights["Safety"] = safety_weight
 
-        if selected_tools["Bearer"]:
             bearer_critical_weight = get_weight_input("Bearer critical vulnerabilities", "Recommended: 0.2")
             if bearer_critical_weight is not None:
                 weights["Bearer - Critical"] = bearer_critical_weight
@@ -149,6 +150,40 @@ def main():
             bearer_low_weight = get_weight_input("Bearer low vulnerabilities", "Recommended: 0.05")
             if bearer_low_weight is not None:
                 weights["Bearer - Low"] = bearer_low_weight
+
+        else:
+            # Not all tools selected: Use "0-1" placeholder
+            if selected_tools["Gitleaks"]:
+                gitleaks_weight = get_weight_input("Gitleaks", "0-1")
+                if gitleaks_weight is not None:
+                    weights["Gitleaks"] = gitleaks_weight
+
+            if selected_tools["Guarddog"]:
+                guarddog_weight = get_weight_input("Guarddog", "0-1")
+                if guarddog_weight is not None:
+                    weights["Guarddog"] = guarddog_weight
+
+            if selected_tools["Safety"]:
+                safety_weight = get_weight_input("Safety", "0-1")
+                if safety_weight is not None:
+                    weights["Safety"] = safety_weight
+
+            if selected_tools["Bearer"]:
+                bearer_critical_weight = get_weight_input("Bearer critical vulnerabilities", "0-1")
+                if bearer_critical_weight is not None:
+                    weights["Bearer - Critical"] = bearer_critical_weight
+
+                bearer_high_weight = get_weight_input("Bearer high vulnerabilities", "0-1")
+                if bearer_high_weight is not None:
+                    weights["Bearer - High"] = bearer_high_weight
+
+                bearer_medium_weight = get_weight_input("Bearer medium vulnerabilities", "0-1")
+                if bearer_medium_weight is not None:
+                    weights["Bearer - Medium"] = bearer_medium_weight
+
+                bearer_low_weight = get_weight_input("Bearer low vulnerabilities", "0-1")
+                if bearer_low_weight is not None:
+                    weights["Bearer - Low"] = bearer_low_weight
 
         # Check if the sum of the weights is 1
         total_weight = sum(weights.values())
@@ -186,7 +221,23 @@ def main():
                 "tools": [tool for tool, selected in selected_tools.items() if selected],
             }
             repo_name = repo_url.split("/")[-1].replace(".git", "")
-            
+            parameter_counts = {
+                    "Gitleaks": {
+                        "leaks": 0
+                    },
+                    "Guarddog": {
+                        "malicious_indicators": 0  
+                    },
+                    "Safety": {
+                        "vulns": 0
+                    },
+                    "Bearer": {
+                        "critical": 0,
+                        "high": 0,
+                        "medium": 0,
+                        "low": 0,
+                    }
+                }
             # API calls within a spinner
             with st.spinner("Running scripts... Please wait."):
                 try:
@@ -214,18 +265,25 @@ def main():
                             if percentile_response.status_code == 200:
                                 data = percentile_response.json()
                                 if tool == "Gitleaks":
+                                    parameter_counts["Gitleaks"]["leaks"] = data["leaks"]
                                     percentiles["Gitleaks"] = {
                                         "percentile": data["percentile"]
                                     }
                                 elif tool == "Guarddog":
+                                    parameter_counts["Guarddog"]["malicious_indicators"] = data["Guarddog findings"]
                                     percentiles["Guarddog"] = {
                                         "percentile": data["percentile"]
                                     }
                                 elif tool == "Safety":
+                                    parameter_counts["Safety"]["vulns"] = data["Safety findings"]
                                     percentiles["Safety"] = {
                                         "percentile": data["percentile"]
                                     }
                                 elif tool == "Bearer":
+                                    parameter_counts["Bearer"]["critical"] = data["critical vulnerabilities"]
+                                    parameter_counts["Bearer"]["high"] = data["high vulnerabilities"]
+                                    parameter_counts["Bearer"]["medium"] = data["medium vulnerabilities"]
+                                    parameter_counts["Bearer"]["low"] = data["low vulnerabilities"]
                                     percentiles["Bearer"] = {
                                         "critical_percentile": data["critical percentile"],
                                         "high_percentile": data["high percentile"],
@@ -234,6 +292,7 @@ def main():
                                     }
                                 st.write(f"Percentile for {tool}:")
                                 st.json(data)
+                                
                         trust_score = 0
                         score = 0
                         for tool, weight in weights.items():
@@ -271,6 +330,22 @@ def main():
                                 
                         trust_score = 100 - score  # Subtract total weighted score from 100
                         st.success(f"Calculated Trust Score: {trust_score}")
+                        labels = []
+                        counts = []
+                        colors = ['skyblue', 'lightgreen', 'lightcoral', 'gold', 'lightpink', 'lightyellow', 'lightgray']
+                        for tool, params in parameter_counts.items():
+                            for param, count in params.items():
+                                labels.append(f"{tool} - {param}")
+                                counts.append(count)
+
+                                # Create the bar chart
+                        plt.figure(figsize=(10, 6))
+                        plt.barh(labels, counts, color=colors)
+                        plt.xlabel('Count')
+                        plt.ylabel('Parameter')
+                        plt.title('Parameter Counts by Tool')
+                        plt.tight_layout()
+                        st.pyplot(plt)
                     else:
                         st.error(f"API Gateway Error: {response.status_code}")
                         st.text(response.text)
