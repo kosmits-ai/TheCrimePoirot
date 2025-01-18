@@ -485,7 +485,7 @@ def main():
             - **MongoDB** for data storage
 
             ### 🤖 Project source code:
-            [CrimePoirot Repository](https://github.com/kosmits-ai/CrimePoirot)
+            [CrimePoirot Repository](https://github.com/kosmits-ai/TheCrimePoirot)
             """
         )
     
