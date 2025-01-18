@@ -113,6 +113,7 @@ API_GATEWAY = os.getenv("API_GATEWAY_URL", "http://api_gateway:5007")
 
 @app.route('/update_db', methods=['POST'])
 def update_db():
+    results = []
 # Loop over all repositories
     for repo, url in repo_urls.items():
         try:
@@ -167,21 +168,53 @@ def update_db():
                     writer = csv.writer(file)
                     # Write a new row with the values for the repository
                     writer.writerow([repo, gitleaks_leaks, guarddog_results, safety_vulnerabilities, critical, high, medium, low])
+                    results.append({
+                    "repo": repo,
+                    "status": "success",
+                    "details": {
+                        "gitleaks_leaks": gitleaks_leaks,
+                        "guarddog_results": guarddog_results,
+                        "safety_vulnerabilities": safety_vulnerabilities,
+                        "bearer_critical": critical,
+                        "bearer_high": high,
+                        "bearer_medium": medium,
+                        "bearer_low": low,
+                    }
+                })
 
-                print("New data has been inserted into the CSV file.")
             else:
-                print(f"Error with analysis for {repo}: {response.text}")
-        
-        except Exception as e:
-            print(f"An error occurred for {repo}: {e}")
+                # Log error for this repository
+                results.append({
+                    "repo": repo,
+                    "status": "error",
+                    "message": response.text
+                })
 
+        except Exception as e:
+            # Log exception for this repository
+            results.append({
+                "repo": repo,
+                "status": "error",
+                "message": str(e)
+            })
+
+    # Return a structured response
+    response = {"message": "Database update completed", "results": results}
+    print(response)  # Log the response
+    return jsonify(response), 200
+                
 
 @app.route('/create_db', methods=['POST'])
 def create_db():
     # Open the CSV file in write mode to clear its content and write the header
-    with open(CSV_PATH, "w", newline="") as file:
-        writer = csv.writer(file)
-        writer.writerow(CSV_HEADER)  # Write the header first
+    try:
+        with open(CSV_PATH, "w", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerow(CSV_HEADER)  # Write the header first
+    except Exception as e:
+        return jsonify({"error": f"Failed to write CSV header: {str(e)}"}), 500
+
+    results = []
 
     # Loop over all repositories
     for repo, url in repo_urls.items():
@@ -194,26 +227,36 @@ def create_db():
 
             # Sending the request to the API Gateway to analyze the repository
             response = requests.post(f"{API_GATEWAY}/analyze", json=payload)
-            
+
             if response.status_code == 200:
                 # Get the response data
                 response_data = response.json()
 
-                # Extract the data for each tool
+                # Bearer Data
+                # Bearer Data
                 bearer_data = response_data['results']['Bearer']['data']['data']
-                gitleaks_data = response_data['results']['Gitleaks']['data']['data']
-                guarddog_data = response_data['results']['Guarddog']['data']['data']
-                safety_data = response_data['results']['Safety']['data']['data']
-
-                # Extract specific values
                 critical = bearer_data['critical']
                 high = bearer_data['high']
                 medium = bearer_data['medium']
                 low = bearer_data['low']
+                # Check if 'vulnerabilities' is a list or an integer
                 bearer_vulnerabilities = len(bearer_data['vulnerabilities']) if isinstance(bearer_data['vulnerabilities'], list) else bearer_data['vulnerabilities']
+
+                # Gitleaks Data
+                gitleaks_data = response_data['results']['Gitleaks']['data']['data']
+                # Check if 'leaks' is a list or an integer
                 gitleaks_leaks = len(gitleaks_data['leaks']) if isinstance(gitleaks_data['leaks'], list) else gitleaks_data['leaks']
+
+                # Guarddog Data
+                guarddog_data = response_data['results']['Guarddog']['data']['data']
+                # Check if 'results' is a list or a string (no suspicious findings case)
                 guarddog_results = 0 if guarddog_data['results'] == 'No suspicious findings' else (len(guarddog_data['results']) if isinstance(guarddog_data['results'], list) else guarddog_data['results'])
+
+                # Safety Data
+                safety_data = response_data['results']['Safety']['data']['data']
+                # Check if 'vulnerabilities' is a list or an integer
                 safety_vulnerabilities = len(safety_data['vulnerabilities']) if isinstance(safety_data['vulnerabilities'], list) else safety_data['vulnerabilities']
+
 
                 # Print the extracted data for verification
                 print(f"Repo Name: {repo}")
@@ -222,16 +265,46 @@ def create_db():
                 print(f"Guarddog Results: {guarddog_results}")
                 print(f"Safety Vulnerabilities: {safety_vulnerabilities}")
 
-                # Step 2: Append new data to the CSV (after the header)
+                # Append new data to the CSV (after the header)
                 with open(CSV_PATH, "a", newline="") as file:  # Open the file in append mode to add new data
                     writer = csv.writer(file)
                     writer.writerow([repo, gitleaks_leaks, guarddog_results, safety_vulnerabilities, critical, high, medium, low])
-                print("New data has been inserted into the CSV file.")
+
+                results.append({
+                    "repo": repo,
+                    "status": "success",
+                    "details": {
+                        "gitleaks_leaks": gitleaks_leaks,
+                        "guarddog_results": guarddog_results,
+                        "safety_vulnerabilities": safety_vulnerabilities,
+                        "bearer_critical": critical,
+                        "bearer_high": high,
+                        "bearer_medium": medium,
+                        "bearer_low": low,
+                    }
+                })
             else:
-                print(f"Error with analysis for {repo}: {response.text}")
-        
+                # Log error for this repository
+                results.append({
+                    "repo": repo,
+                    "status": "error",
+                    "message": f"Failed to analyze repo: {response.text}"
+                })
+
         except Exception as e:
-            print(f"An error occurred for {repo}: {e}")
+            # Log exception for this repository
+            results.append({
+                "repo": repo,
+                "status": "error",
+                "message": f"Exception occurred: {str(e)}"
+            })
+
+    # Return a structured response
+    response = {"message": "Database update completed", "results": results}
+    print(response)  # Log the response
+    return jsonify(response), 200
+
+            
 
 
 if __name__ == '__main__':

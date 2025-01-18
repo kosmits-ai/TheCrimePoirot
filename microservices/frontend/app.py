@@ -413,7 +413,9 @@ def main():
                     
                     # Check if the request was successful
                     if response.status_code == 200:
+                        result = response.json()
                         st.success("DataBase updated successfully.")
+                        st.json(result)
                         try:
                             # Attempt to parse JSON response
                             print(response.json())  # This prints the JSON response from the API
@@ -437,7 +439,9 @@ def main():
                     
                     # Check if the request was successful
                     if response.status_code == 200:
+                        result = response.json()
                         st.success("DataBase created successfully.")
+                        st.json(result)
                         try:
                             # Attempt to parse JSON response
                             print(response.json())  # This prints the JSON response from the API
