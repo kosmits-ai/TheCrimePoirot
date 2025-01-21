@@ -3,10 +3,16 @@ services:
     build:
       context: ./microservices/mongodb
     ports:
-      - "5000:5000"  # MongoDB service's API port
+      - "5000:5000"
     env_file:
       - .env
-    depends_on: []
+    runtime: runc
+    networks:
+      crimepoirot_network:
+        ipv4_address: 192.168.1.2
+    dns:
+      - 8.8.8.8  # Google DNS
+      - 8.8.4.4  # Google DNS
 
   gitleaks:
     build:
@@ -15,8 +21,16 @@ services:
       - "5001:5001"
     env_file:
       - .env
+    networks:
+      crimepoirot_network:
+        ipv4_address: 192.168.1.3
     depends_on:
       - mongo-service
+    volumes:
+      - /home/vboxuser/Documents/RepoForTest:/app/RepoForTest
+    dns:
+      - 8.8.8.8  # Google DNS
+      - 8.8.4.4  # Google DNS
 
   guarddog:
     build:
@@ -25,8 +39,16 @@ services:
       - "5002:5002"
     env_file:
       - .env
+    networks:
+      crimepoirot_network:
+        ipv4_address: 192.168.1.4
     depends_on:
       - mongo-service
+    volumes:
+      - /home/vboxuser/Documents/RepoForTest:/app/RepoForTest
+    dns:
+      - 8.8.8.8  # Google DNS
+      - 8.8.4.4  # Google DNS
 
   safety:
     build:
@@ -35,8 +57,16 @@ services:
       - "5003:5003"
     env_file:
       - .env
+    networks:
+      crimepoirot_network:
+        ipv4_address: 192.168.1.5
     depends_on:
       - mongo-service
+    volumes:
+      - /home/vboxuser/Documents/RepoForTest:/app/RepoForTest
+    dns:
+      - 8.8.8.8  # Google DNS
+      - 8.8.4.4  # Google DNS
 
   bearer:
     build:
@@ -45,10 +75,16 @@ services:
       - "5004:5004"
     env_file:
       - .env
+    networks:
+      crimepoirot_network:
+        ipv4_address: 192.168.1.6
     depends_on:
       - mongo-service
-    #mem_limit: 2g  # Limit to 1GB of RAM (you can adjust this value)
-    #mem_reservation: 1g  # Minimum RAM the container should have
+    volumes:
+      - /home/vboxuser/Documents/RepoForTest:/app/RepoForTest
+    dns:
+      - 8.8.8.8  # Google DNS
+      - 8.8.4.4  # Google DNS
 
   calculate_percentile:
     build:
@@ -58,9 +94,17 @@ services:
     env_file:
       - .env
     volumes:
-      - ./report.csv:/app/report.csv  # Bind mount for report file
+      - ./report.csv:/app/report.csv
+      - /home/vboxuser/Documents/RepoForTest:/app/RepoForTest
+    runtime: runc
+    networks:
+      crimepoirot_network:
+        ipv4_address: 192.168.1.7
     depends_on:
       - mongo-service
+    dns:
+      - 8.8.8.8  # Google DNS
+      - 8.8.4.4  # Google DNS
 
   api_gateway:
     build:
@@ -69,12 +113,21 @@ services:
       - "5007:5007"
     env_file:
       - .env
+    networks:
+      crimepoirot_network:
+        ipv4_address: 192.168.1.8
+    runtime: runc
     depends_on:
       - gitleaks
       - guarddog
       - safety
       - bearer
       - calculate_percentile
+    volumes:
+      - /home/vboxuser/Documents/RepoForTest:/app/RepoForTest
+    dns:
+      - 8.8.8.8  # Google DNS
+      - 8.8.4.4  # Google DNS
 
   frontend:
     build:
@@ -85,9 +138,17 @@ services:
       - .env
     volumes:
       - ./images:/app/images
+      - /home/vboxuser/Documents/RepoForTest:/app/RepoForTest
+    runtime: runc
+    networks:
+      crimepoirot_network:
+        ipv4_address: 192.168.1.9
     depends_on:
       - api_gateway
-  
+    dns:
+      - 8.8.8.8  # Google DNS
+      - 8.8.4.4  # Google DNS
+
   update_db:
     build:
       context: ./microservices/update_db
@@ -95,6 +156,10 @@ services:
       - "5008:5008"
     env_file:
       - .env
+    runtime: runc
+    networks:
+      crimepoirot_network:
+        ipv4_address: 192.168.1.10
     depends_on:
       - mongo-service
       - gitleaks
@@ -104,3 +169,15 @@ services:
       - api_gateway
     volumes:
       - ./report.csv:/app/report.csv
+      - /home/vboxuser/Documents/RepoForTest:/app/RepoForTest
+    dns:
+      - 8.8.8.8  # Google DNS
+      - 8.8.4.4  # Google DNS
+
+networks:
+  crimepoirot_network:
+    external: true
+    driver: bridge
+    ipam:
+      config:
+        - subnet: "192.168.1.0/24"
