@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+RUN useradd -ms /bin/bash appuser
 # Set the working directory
 WORKDIR /app
 
@@ -22,6 +23,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the application code
 COPY . .
+
+# Change ownership of the app directory to the non-root user
+RUN mkdir -p /app/repos && chown -R appuser:appuser /app/repos
+
+# Switch to the non-root user
+USER appuser
 
 # Expose the Flask app port
 EXPOSE 5003
