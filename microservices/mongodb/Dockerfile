@@ -16,6 +16,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 RUN mkdir -p /app/repos && chown -R appuser:appuser /app/repos
+
+USER appuser
 # Expose the port that the service will run on
 EXPOSE 5000
 
