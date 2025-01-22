@@ -11,8 +11,8 @@ import numpy as np
 
 load_dotenv()
 
-API_GATEWAY_URL = os.getenv("API_GATEWAY_URL")
-UPDATE_DB_URL = os.getenv("UPDATE_DB_URL")
+API_GATEWAY_URL = st.secrets["API_GATEWAY_URL"]
+UPDATE_DB_URL = st.secrets["UPDATE_DB_URL"]
 def main():
     st.set_page_config(
         page_title="CrimePoirot",
