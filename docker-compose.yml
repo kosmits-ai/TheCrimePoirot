@@ -1,7 +1,6 @@
 services:
   mongo-service:
-    build:
-      context: ./microservices/mongodb
+    image: kosmits/thecrimepoirot:mongo-service-1.0.1
     ports:
       - "5000:5000"
     env_file:
@@ -15,8 +14,7 @@ services:
       - 8.8.4.4  # Google DNS
 
   gitleaks:
-    build:
-      context: ./microservices/gitleaks
+    image: kosmits/thecrimepoirot:gitleaks-1.0.1
     ports:
       - "5001:5001"
     env_file:
@@ -33,8 +31,7 @@ services:
       - 8.8.4.4  # Google DNS
 
   guarddog:
-    build:
-      context: ./microservices/guarddog
+    image: kosmits/thecrimepoirot:guarddog-1.0.1
     ports:
       - "5002:5002"
     env_file:
@@ -51,8 +48,7 @@ services:
       - 8.8.4.4  # Google DNS
 
   safety:
-    build:
-      context: ./microservices/safety
+    image: kosmits/thecrimepoirot:safety-1.0.1
     ports:
       - "5003:5003"
     env_file:
@@ -69,8 +65,7 @@ services:
       - 8.8.4.4  # Google DNS
 
   bearer:
-    build:
-      context: ./microservices/bearer
+    image: kosmits/thecrimepoirot:bearer-1.0.1
     ports:
       - "5004:5004"
     env_file:
@@ -87,8 +82,7 @@ services:
       - 8.8.4.4  # Google DNS
 
   calculate_percentile:
-    build:
-      context: ./microservices/calculate_percentile
+    image: kosmits/thecrimepoirot:calculate_percentile-1.0.1
     ports:
       - "5005:5005"
     env_file:
@@ -107,8 +101,7 @@ services:
       - 8.8.4.4  # Google DNS
 
   api_gateway:
-    build:
-      context: ./microservices/api_gateway
+    image: kosmits/thecrimepoirot:api_gateway-1.0.1
     ports:
       - "5007:5007"
     env_file:
@@ -130,8 +123,7 @@ services:
       - 8.8.4.4  # Google DNS
 
   frontend:
-    build:
-      context: ./microservices/frontend
+    image: kosmits/thecrimepoirot:frontend-1.0.1
     ports:
       - "8501:8501"
     env_file:
@@ -150,8 +142,7 @@ services:
       - 8.8.4.4  # Google DNS
 
   update_db:
-    build:
-      context: ./microservices/update_db
+    image: kosmits/thecrimepoirot:update_db-1.0.1
     ports:
       - "5008:5008"
     env_file:
