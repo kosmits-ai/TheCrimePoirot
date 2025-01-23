@@ -12,27 +12,14 @@ The main idea behind this project was building a tool that can check for various
 
 ## **How To Use:**
 What steps to follow in order to use TheCrimePoirot:
-1. `git clone <repo url>`
-2. Create venv in project root directory: `python3 -m venv venv`
-3. In **venv**: `pip install -r requirements.txt`
-4. In root directory: `git clone https://github.com/gitleaks/gitleaks`
-5. If you have Go installed: `cd gitleaks`,  `make build`
-6.  Authentication for **Safety** :
-  - `safety auth`
-7. Install **Bearer** package:
-  - ```
-    sudo apt-get install apt-transport-https
-    echo "deb [trusted=yes] https://apt.fury.io/bearer/ /" | sudo tee -a /etc/apt/sources.list.d/fury.list
-    sudo apt-get update
-    sudo apt-get install bearer
-    
-## **Run the Scripts:**
-1. `./start_services.sh`
-2. Cd to api_gateway: `python app.py`
-3. In new terminal:
-- `cd microservices/frontend`
-- `streamlit run app.py` 
-After following this instructions, frontend will be up in a localhost.
+1. `git clone -b dockertest https://github.com/kosmits-ai/TheCrimePoirot.git`
+2. Define the `.env`.
+3. `docker login`
+4. Pull the required Docker images from [DockerHub](https://hub.docker.com/repository/docker/kosmits/thecrimepoirot/general):  
+   `docker compose pull`
+5. In root directory: `docker compose up`
+6. Access the `frontend` service and run your analysis.
+
 
 ###  How to scan repo in frontend:
 1. Navigate to Run Scripts tab.
@@ -42,3 +29,14 @@ After following this instructions, frontend will be up in a localhost.
 5. Available tools are: Gitleaks, Guarddog, Safety, Bearer.
 6. The sum of the corresponding weights must be equal to 1.
 
+
+### How to re evaluate the trust score criteria?
+1. Navigate to the `DB CrimePoirot` tab in frontend.
+2. Select `Update DataBase` or `CreateDatabase` depend on your needs.
+
+### How to use runtime runsc?
+Using runsc of gVisor is optional.We recommend runsc on tool's services for a better security protection.If you want to run sandboxed containers follow the following:
+1. Install gVisor runsc based on the [installation guide](https://gvisor.dev/docs/user_guide/install/).
+2. Define static IPs for services in order to communicate with each other.
+3. Follow [networking guide from Gvisor](https://gvisor.dev/docs/user_guide/networking/) in `/etc/docker/daemon.json`
+4. Define runtimes according to your needs in `docker-compose.yml`. We encourage you to use runsc runtime to tools services and runc in the rest of them for a combination of security and performance.
