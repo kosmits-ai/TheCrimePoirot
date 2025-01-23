@@ -8,7 +8,7 @@ services:
     runtime: runc
     networks:
       crimepoirot_network:
-        ipv4_address: 192.168.1.2
+        ipv4_address: ${MONGO_SERVICE_IP}
     dns:
       - 8.8.8.8  # Google DNS
       - 8.8.4.4  # Google DNS
@@ -21,7 +21,7 @@ services:
       - .env
     networks:
       crimepoirot_network:
-        ipv4_address: 192.168.1.3
+        ipv4_address: ${GITLEAKS_IP}
     depends_on:
       - mongo-service
     volumes:
@@ -38,7 +38,7 @@ services:
       - .env
     networks:
       crimepoirot_network:
-        ipv4_address: 192.168.1.4
+        ipv4_address: ${GUARDDOG_IP}
     depends_on:
       - mongo-service
     volumes:
@@ -55,7 +55,7 @@ services:
       - .env
     networks:
       crimepoirot_network:
-        ipv4_address: 192.168.1.5
+        ipv4_address: ${SAFETY_IP}
     depends_on:
       - mongo-service
     volumes:
@@ -72,7 +72,7 @@ services:
       - .env
     networks:
       crimepoirot_network:
-        ipv4_address: 192.168.1.6
+        ipv4_address: ${BEARER_IP}
     depends_on:
       - mongo-service
     volumes:
@@ -93,7 +93,7 @@ services:
     runtime: runc
     networks:
       crimepoirot_network:
-        ipv4_address: 192.168.1.7
+        ipv4_address: ${PERCENTILE_SERVICE_IP}
     depends_on:
       - mongo-service
     dns:
@@ -108,7 +108,7 @@ services:
       - .env
     networks:
       crimepoirot_network:
-        ipv4_address: 192.168.1.8
+        ipv4_address: ${API_GATEWAY_IP}
     runtime: runc
     depends_on:
       - gitleaks
@@ -134,7 +134,7 @@ services:
     runtime: runc
     networks:
       crimepoirot_network:
-        ipv4_address: 192.168.1.9
+        ipv4_address: ${FRONTEND_IP}
     depends_on:
       - api_gateway
     dns:
@@ -150,7 +150,7 @@ services:
     runtime: runc
     networks:
       crimepoirot_network:
-        ipv4_address: 192.168.1.10
+        ipv4_address: ${UPDATE_DB_IP}
     depends_on:
       - mongo-service
       - gitleaks
@@ -171,4 +171,4 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: "192.168.1.0/24"
+        - subnet: ${CRIMEPOIROT_SUBNET}
