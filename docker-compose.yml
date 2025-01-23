@@ -24,6 +24,7 @@ services:
         ipv4_address: ${GITLEAKS_IP}
     depends_on:
       - mongo-service
+    runtime: runsc
     volumes:
       - /home/vboxuser/Documents/RepoForTest:/app/RepoForTest
     dns:
@@ -41,6 +42,7 @@ services:
         ipv4_address: ${GUARDDOG_IP}
     depends_on:
       - mongo-service
+    runtime: runsc
     volumes:
       - /home/vboxuser/Documents/RepoForTest:/app/RepoForTest
     dns:
@@ -58,6 +60,7 @@ services:
         ipv4_address: ${SAFETY_IP}
     depends_on:
       - mongo-service
+    runtime: runsc
     volumes:
       - /home/vboxuser/Documents/RepoForTest:/app/RepoForTest
     dns:
@@ -73,6 +76,7 @@ services:
     networks:
       crimepoirot_network:
         ipv4_address: ${BEARER_IP}
+    runtime: runsc
     depends_on:
       - mongo-service
     volumes:
@@ -123,7 +127,7 @@ services:
       - 8.8.4.4  # Google DNS
 
   frontend:
-    image: kosmits/thecrimepoirot:frontend-1.0.1
+    image: kosmits/thecrimepoirot:frontend-1.0.2
     ports:
       - "8501:8501"
     env_file:
