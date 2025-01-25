@@ -7,7 +7,10 @@ import requests
 import time
 import matplotlib.pyplot as plt
 import numpy as np
-
+import pandas as pd
+import altair as alt
+import plotly.graph_objects as go
+import time
 
 load_dotenv()
 
@@ -17,7 +20,7 @@ def main():
     st.set_page_config(
         page_title="CrimePoirot",
         layout="centered",
-        initial_sidebar_state="collapsed",
+        initial_sidebar_state="auto",
         page_icon="🔍"
     )
     
@@ -47,6 +50,26 @@ def main():
         .stButton>button {
         width: 300px;  /* Set the button width */
         height: 50px;  /* Set the button height */
+    }
+        [data-testid="stSidebar"]{
+        background-color: #212121;
+        color: #333;
+        font-family: 'Times New Roman', Times, serif;
+        padding: 20px;
+    }
+        .stSidebar .stTextInput input {
+            background-color: #424242;  /* Light cyan background */
+            color: #eoeoeo;             /* Dark teal text */
+            padding: 10px;              /* Add padding to input */
+            border-radius: 5px;         /* Rounded corners */
+            border: 2px solid #7F8C8D;  /* Dark teal border */
+            font-family: 'Times New Roman', Times, serif;
+    }
+        .stSidebar .stTextInput label {
+            font-size: 26px;  /* Adjust the font size for the label */
+    }
+        .stSidebar .stTextInput {
+            font-size: 18px;  /* Adjust the font size for the input */
     }
         </style>
         """,
@@ -106,7 +129,7 @@ def main():
 
         # Conditional display of weight inputs based on tool selection
         def get_weight_input(tool_name, placeholder):
-            weight = st.text_input(f"Enter {tool_name} weight for trust score calculation", placeholder=placeholder)
+            weight = st.text_input(f"Enter {tool_name} weight:", placeholder=placeholder)
             if weight:
                 try:
                     weight = float(weight)
@@ -122,68 +145,70 @@ def main():
 
         # Collect weights with dynamic placeholders
         if is_all_selected:
+            with st.sidebar:
             # All tools selected: Use recommended placeholders
-            gitleaks_weight = get_weight_input("Gitleaks", "Recommended: 0.3")
-            if gitleaks_weight is not None:
-                weights["Gitleaks"] = gitleaks_weight
-
-            guarddog_weight = get_weight_input("Guarddog", "Recommended: 0.1")
-            if guarddog_weight is not None:
-                weights["Guarddog"] = guarddog_weight
-
-            safety_weight = get_weight_input("Safety", "Recommended: 0.1")
-            if safety_weight is not None:
-                weights["Safety"] = safety_weight
-
-            bearer_critical_weight = get_weight_input("Bearer critical vulnerabilities", "Recommended: 0.2")
-            if bearer_critical_weight is not None:
-                weights["Bearer - Critical"] = bearer_critical_weight
-
-            bearer_high_weight = get_weight_input("Bearer high vulnerabilities", "Recommended: 0.15")
-            if bearer_high_weight is not None:
-                weights["Bearer - High"] = bearer_high_weight
-
-            bearer_medium_weight = get_weight_input("Bearer medium vulnerabilities", "Recommended: 0.1")
-            if bearer_medium_weight is not None:
-                weights["Bearer - Medium"] = bearer_medium_weight
-
-            bearer_low_weight = get_weight_input("Bearer low vulnerabilities", "Recommended: 0.05")
-            if bearer_low_weight is not None:
-                weights["Bearer - Low"] = bearer_low_weight
-
-        else:
-            # Not all tools selected: Use "0-1" placeholder
-            if selected_tools["Gitleaks"]:
-                gitleaks_weight = get_weight_input("Gitleaks", "0-1")
+                gitleaks_weight = get_weight_input("Gitleaks", "Recommended: 0.3")
                 if gitleaks_weight is not None:
                     weights["Gitleaks"] = gitleaks_weight
 
-            if selected_tools["Guarddog"]:
-                guarddog_weight = get_weight_input("Guarddog", "0-1")
+                guarddog_weight = get_weight_input("Guarddog", "Recommended: 0.1")
                 if guarddog_weight is not None:
                     weights["Guarddog"] = guarddog_weight
 
-            if selected_tools["Safety"]:
-                safety_weight = get_weight_input("Safety", "0-1")
+                safety_weight = get_weight_input("Safety", "Recommended: 0.1")
                 if safety_weight is not None:
                     weights["Safety"] = safety_weight
 
-            if selected_tools["Bearer"]:
-                bearer_critical_weight = get_weight_input("Bearer critical vulnerabilities", "0-1")
+                bearer_critical_weight = get_weight_input("Bearer critical vulns", "Recommended: 0.2")
                 if bearer_critical_weight is not None:
                     weights["Bearer - Critical"] = bearer_critical_weight
 
-                bearer_high_weight = get_weight_input("Bearer high vulnerabilities", "0-1")
+                bearer_high_weight = get_weight_input("Bearer high vulns", "Recommended: 0.15")
                 if bearer_high_weight is not None:
                     weights["Bearer - High"] = bearer_high_weight
 
-                bearer_medium_weight = get_weight_input("Bearer medium vulnerabilities", "0-1")
+                bearer_medium_weight = get_weight_input("Bearer medium vulns", "Recommended: 0.1")
                 if bearer_medium_weight is not None:
                     weights["Bearer - Medium"] = bearer_medium_weight
 
-                bearer_low_weight = get_weight_input("Bearer low vulnerabilities", "0-1")
+                bearer_low_weight = get_weight_input("Bearer low vulns", "Recommended: 0.05")
                 if bearer_low_weight is not None:
                     weights["Bearer - Low"] = bearer_low_weight
+
+        else:
+            with st.sidebar:
+                # Not all tools selected: Use "0-1" placeholder
+                if selected_tools["Gitleaks"]:
+                    gitleaks_weight = get_weight_input("Gitleaks", "0-1")
+                    if gitleaks_weight is not None:
+                        weights["Gitleaks"] = gitleaks_weight
+
+                if selected_tools["Guarddog"]:
+                    guarddog_weight = get_weight_input("Guarddog", "0-1")
+                    if guarddog_weight is not None:
+                        weights["Guarddog"] = guarddog_weight
+
+                if selected_tools["Safety"]:
+                    safety_weight = get_weight_input("Safety", "0-1")
+                    if safety_weight is not None:
+                        weights["Safety"] = safety_weight
+
+                if selected_tools["Bearer"]:
+                    bearer_critical_weight = get_weight_input("Bearer critical vulnerabilities", "0-1")
+                    if bearer_critical_weight is not None:
+                        weights["Bearer - Critical"] = bearer_critical_weight
+
+                    bearer_high_weight = get_weight_input("Bearer high vulnerabilities", "0-1")
+                    if bearer_high_weight is not None:
+                        weights["Bearer - High"] = bearer_high_weight
+
+                    bearer_medium_weight = get_weight_input("Bearer medium vulnerabilities", "0-1")
+                    if bearer_medium_weight is not None:
+                        weights["Bearer - Medium"] = bearer_medium_weight
+
+                    bearer_low_weight = get_weight_input("Bearer low vulnerabilities", "0-1")
+                    if bearer_low_weight is not None:
+                        weights["Bearer - Low"] = bearer_low_weight
 
         # Check if the sum of the weights is 1
         total_weight = sum(weights.values())
@@ -330,22 +355,70 @@ def main():
                                 
                         trust_score = 100 - score  # Subtract total weighted score from 100
                         st.success(f"Calculated Trust Score: {trust_score}")
+                        fig = go.Figure(go.Pie(
+                            values=[trust_score, 100-trust_score],
+                            labels=["Trust", "Untrusted"],
+                            marker=dict(colors=["#4CAF50", "#000000"]),
+                            hole=0.3,  # This creates the donut shape
+                            direction="clockwise",
+                            textinfo="percent",  # Display percentages on the chart
+                            showlegend=False
+                        ))
+
+                        fig.update_layout(
+                            width=400,  # Set the width of the chart
+                            height=400,  # Set the height of the chart
+                            margin=dict(t=20, b=20, l=20, r=20),  # Adjust margins
+                        )
+                        st.subheader("Trust score")
+                        # Display the donut chart in Streamlit
+                        st.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)
+                        st.plotly_chart(fig, use_container_width=False)
+                        st.markdown("</div>", unsafe_allow_html=True)
+ 
+                        alt.theme.enable("dark")
+
+                        # Assuming parameter_counts is a dictionary with tool and parameter counts
                         labels = []
                         counts = []
-                        colors = ['skyblue', 'lightgreen', 'lightcoral', 'gold', 'lightpink', 'lightyellow', 'lightgray']
+                        tools = ["Gitleaks", "Guarddog", "Safety", "Bearer"]  # Just an example, replace with your tool names
                         for tool, params in parameter_counts.items():
                             for param, count in params.items():
                                 labels.append(f"{tool} - {param}")
                                 counts.append(count)
 
-                                # Create the bar chart
-                        plt.figure(figsize=(10, 6))
-                        plt.barh(labels, counts, color=colors)
-                        plt.xlabel('Count')
-                        plt.ylabel('Parameter')
-                        plt.title('Parameter Counts by Tool')
-                        plt.tight_layout()
-                        st.pyplot(plt)
+                        # Create a DataFrame similar to the fruits example
+                        df = pd.DataFrame({"labels": labels, "counts": counts})
+
+                        # Define custom colors for each tool/parameter label
+                        color_domain = labels  # Use the unique labels from the dataset
+                        color_range = ["skyblue", "lightgreen", "lightcoral", "gold", "lightpink", "lightyellow", "lightgray"]  # Example colors, repeat as needed
+
+                        # Create the Altair chart
+                        chart = (
+                            alt.Chart(df)
+                            .mark_bar()
+                            .encode(
+                                x=alt.X("labels"),  # Sorting based on the count or alphabetically
+                                y="counts",
+                                color=alt.Color(
+                                    "labels",
+                                    scale=alt.Scale(
+                                        domain=color_domain,
+                                        range=color_range,
+                                    ),
+                                    legend=None
+                                ),
+                            )
+                            .properties(
+                                width=900,  # Set the chart width
+                                height=500  # Set the chart height
+                            )
+                        )
+                        st.subheader("Parameter Counts by selected tools")
+                        # Display the chart in Streamlit
+                        st.altair_chart(chart, use_container_width=True)
+                        
                     else:
                         st.error(f"API Gateway Error: {response.status_code}")
                         st.text(response.text)
