@@ -11,6 +11,9 @@ import pandas as pd
 import altair as alt
 import plotly.graph_objects as go
 import time
+from streamlit_flow import streamlit_flow
+from streamlit_flow.elements import StreamlitFlowNode, StreamlitFlowEdge
+from streamlit_flow.state import StreamlitFlowState
 
 load_dotenv()
 
@@ -19,7 +22,7 @@ UPDATE_DB_URL = os.getenv("UPDATE_DB_URL")
 def main():
     st.set_page_config(
         page_title="CrimePoirot",
-        layout="centered",
+        layout="wide",
         initial_sidebar_state="auto",
         page_icon="🔍"
     )
@@ -71,6 +74,8 @@ def main():
         .stSidebar .stTextInput {
             font-size: 18px;  /* Adjust the font size for the input */
     }
+        
+
         </style>
         """,
         unsafe_allow_html=True
@@ -102,8 +107,34 @@ def main():
             - Ensure the sum of all weights equals **1**.
             4. **Run the Analysis**: Click the button to analyze the repository and view the trust score along with detailed results.
             
-            """  
+            """
         )
+        nodes = [StreamlitFlowNode(id='1', pos=(100,100), data={'content': 'Enter Github URL'}, node_type='input', source_position='right', draggable=False),
+                    StreamlitFlowNode('2', (300,0), {'content': 'Select from available tools'}, 'default', 'bottom', 'left', draggable=False),
+                    StreamlitFlowNode('3', (300, 200), {'content': 'Define the weights'}, 'default', 'right', 'top', draggable=False),
+                    StreamlitFlowNode('4', (500, 100), {'content': 'Run analysis'}, 'default', 'right', 'left', draggable=False),
+                     StreamlitFlowNode('5', (700, 100), {'content': 'Choose tab'},'default', 'right', 'left', draggable=False),
+                    StreamlitFlowNode('6', (850,0), {'content': 'View Analyis report'}, 'default', 'bottom', 'bottom', draggable=False),
+                    StreamlitFlowNode('7', (850,200), {'content': 'View CrimePoirot report'}, 'default', 'bottom', 'top', draggable=False)
+]
+
+        edges = [StreamlitFlowEdge('1-2', '1', '2', animated=True),
+                    StreamlitFlowEdge('2-3', '2', '3', animated=True),
+                    StreamlitFlowEdge('3-4', '3', '4', animated=True),
+                    StreamlitFlowEdge('4-5', '4', '5', animated=True),
+                    StreamlitFlowEdge('5-6', '5', '6', animated=True),
+                    StreamlitFlowEdge('5-7', '5', '7', animated=True)]
+
+        state = StreamlitFlowState(nodes, edges)
+
+        updated_state = streamlit_flow('ret_val_flow',
+                            state,
+                            fit_view=True,
+                            get_node_on_click=True,
+                            get_edge_on_click=True)
+
+        st.write(f"Clicked on: {updated_state.selected_id}")  
+        
 
 
     with tabs[1]:
@@ -272,152 +303,176 @@ def main():
                     if response.status_code == 200:
                         result_data = response.json()
                         st.success("Analysis Completed!")
-                        st.json(result_data)
-                        # Fetch additional results
-                        tools_param = '&'.join([f'tools={tool}' for tool in payload["tools"]])
-                        url = f"{API_GATEWAY_URL}/final_results/{repo_name}?{tools_param}"
-                        final_results = requests.get(url)
-                        
-                        if final_results.status_code == 200:
-                            st.success("Findings moved to final_results collection of DataBase.")
-                        else:
-                            st.error(f"Error fetching final results: {final_results.status_code}")
-                            st.text(final_results.text)
-                        percentiles = {}
-                        # Fetch percentile data if needed
-                        for tool in payload["tools"]:
-                            percentile_response = requests.get(f"{API_GATEWAY_URL}/percentile/{tool}/{repo_name}")
-                            if percentile_response.status_code == 200:
-                                data = percentile_response.json()
-                                if tool == "Gitleaks":
-                                    parameter_counts["Gitleaks"]["leaks"] = data["leaks"]
-                                    percentiles["Gitleaks"] = {
-                                        "percentile": data["percentile"]
-                                    }
-                                elif tool == "Guarddog":
-                                    parameter_counts["Guarddog"]["malicious_indicators"] = data["Guarddog findings"]
-                                    percentiles["Guarddog"] = {
-                                        "percentile": data["percentile"]
-                                    }
-                                elif tool == "Safety":
-                                    parameter_counts["Safety"]["vulns"] = data["Safety findings"]
-                                    percentiles["Safety"] = {
-                                        "percentile": data["percentile"]
-                                    }
-                                elif tool == "Bearer":
-                                    parameter_counts["Bearer"]["critical"] = data["critical vulnerabilities"]
-                                    parameter_counts["Bearer"]["high"] = data["high vulnerabilities"]
-                                    parameter_counts["Bearer"]["medium"] = data["medium vulnerabilities"]
-                                    parameter_counts["Bearer"]["low"] = data["low vulnerabilities"]
-                                    percentiles["Bearer"] = {
-                                        "critical_percentile": data["critical percentile"],
-                                        "high_percentile": data["high percentile"],
-                                        "low_percentile": data["low percentile"],
-                                        "medium_percentile": data["medium percentile"]
-                                    }
-                                st.write(f"Percentile for {tool}:")
-                                st.json(data)
-                                
-                        trust_score = 0
-                        score = 0
-                        for tool, weight in weights.items():
-                            if tool == "Gitleaks" and "Gitleaks" in percentiles:
-                                gitleaks_percentile = percentiles["Gitleaks"]["percentile"]
-                                score += weight * gitleaks_percentile  # Multiply weight by percentile for Gitleaks
-                                       
-                            elif tool == "Guarddog" and "Guarddog" in percentiles:
-                                guarddog_percentile = percentiles["Guarddog"]["percentile"]
-                                score += weight * guarddog_percentile  # Multiply weight by percentile for Guarddog     
-                            elif tool == "Safety" and "Safety" in percentiles:
-                                safety_percentile = percentiles["Safety"]["percentile"]
-                                score += weight * safety_percentile  # Multiply weight by percentile for Safety   
-                            elif tool == "Bearer - Critical" and "Bearer" in percentiles:
-                                bearer_percentile = percentiles["Bearer"]["critical_percentile"]
-                                score += weight * bearer_percentile  # Multiply weight by critical percentile for Bearer
-                                      
-                            elif tool == "Bearer - High" and "Bearer" in percentiles:
-                                bearer_percentile = percentiles["Bearer"]["high_percentile"]
-                                score += weight * bearer_percentile  # Multiply weight by high percentile for Bearer
-                                        
-                                        
-                            elif tool == "Bearer - Medium" and "Bearer" in percentiles:
-                                bearer_percentile = percentiles["Bearer"]["medium_percentile"]
-                                score += weight * bearer_percentile  # Multiply weight by medium percentile for Bearer
-                                        
-                                        
-                            elif tool == "Bearer - Low" and "Bearer" in percentiles:
-                                bearer_percentile = percentiles["Bearer"]["low_percentile"]
-                                score += weight * bearer_percentile  # Multiply weight by low percentile for Bearer
-                                        
-      
+                        tabs_success = st.tabs(["📄 View analysis report", "📈 View metrics"])
+                        with tabs_success[0]:
+                            st.json(result_data)
+                            # Fetch additional results
+                            tools_param = '&'.join([f'tools={tool}' for tool in payload["tools"]])
+                            url = f"{API_GATEWAY_URL}/final_results/{repo_name}?{tools_param}"
+                            final_results = requests.get(url)
+                            
+                            if final_results.status_code == 200:
+                                st.success("Findings moved to final_results collection of DataBase.")
                             else:
-                                st.warning(f"Percentile data for {tool} could not be retrieved.")
+                                st.error(f"Error fetching final results: {final_results.status_code}")
+                                st.text(final_results.text)
+                            percentiles = {}
+                            # Fetch percentile data if needed
+                            for tool in payload["tools"]:
+                                percentile_response = requests.get(f"{API_GATEWAY_URL}/percentile/{tool}/{repo_name}")
+                                if percentile_response.status_code == 200:
+                                    data = percentile_response.json()
+                                    if tool == "Gitleaks":
+                                        parameter_counts["Gitleaks"]["leaks"] = data["leaks"]
+                                        percentiles["Gitleaks"] = {
+                                            "percentile": data["percentile"]
+                                        }
+                                    elif tool == "Guarddog":
+                                        parameter_counts["Guarddog"]["malicious_indicators"] = data["Guarddog findings"]
+                                        percentiles["Guarddog"] = {
+                                            "percentile": data["percentile"]
+                                        }
+                                    elif tool == "Safety":
+                                        parameter_counts["Safety"]["vulns"] = data["Safety findings"]
+                                        percentiles["Safety"] = {
+                                            "percentile": data["percentile"]
+                                        }
+                                    elif tool == "Bearer":
+                                        parameter_counts["Bearer"]["critical"] = data["critical vulnerabilities"]
+                                        parameter_counts["Bearer"]["high"] = data["high vulnerabilities"]
+                                        parameter_counts["Bearer"]["medium"] = data["medium vulnerabilities"]
+                                        parameter_counts["Bearer"]["low"] = data["low vulnerabilities"]
+                                        percentiles["Bearer"] = {
+                                            "critical_percentile": data["critical percentile"],
+                                            "high_percentile": data["high percentile"],
+                                            "low_percentile": data["low percentile"],
+                                            "medium_percentile": data["medium percentile"]
+                                        }
+                                    st.write(f"Percentile for {tool}:")
+                                    st.json(data)
+                        with tabs_success[1]:        
+                            trust_score = 0
+                            score = 0
+                            for tool, weight in weights.items():
+                                if tool == "Gitleaks" and "Gitleaks" in percentiles:
+                                    gitleaks_percentile = percentiles["Gitleaks"]["percentile"]
+                                    score += weight * gitleaks_percentile  # Multiply weight by percentile for Gitleaks
+                                        
+                                elif tool == "Guarddog" and "Guarddog" in percentiles:
+                                    guarddog_percentile = percentiles["Guarddog"]["percentile"]
+                                    score += weight * guarddog_percentile  # Multiply weight by percentile for Guarddog     
+                                elif tool == "Safety" and "Safety" in percentiles:
+                                    safety_percentile = percentiles["Safety"]["percentile"]
+                                    score += weight * safety_percentile  # Multiply weight by percentile for Safety   
+                                elif tool == "Bearer - Critical" and "Bearer" in percentiles:
+                                    bearer_percentile = percentiles["Bearer"]["critical_percentile"]
+                                    score += weight * bearer_percentile  # Multiply weight by critical percentile for Bearer
+                                        
+                                elif tool == "Bearer - High" and "Bearer" in percentiles:
+                                    bearer_percentile = percentiles["Bearer"]["high_percentile"]
+                                    score += weight * bearer_percentile  # Multiply weight by high percentile for Bearer
+                                            
+                                            
+                                elif tool == "Bearer - Medium" and "Bearer" in percentiles:
+                                    bearer_percentile = percentiles["Bearer"]["medium_percentile"]
+                                    score += weight * bearer_percentile  # Multiply weight by medium percentile for Bearer
+                                            
+                                            
+                                elif tool == "Bearer - Low" and "Bearer" in percentiles:
+                                    bearer_percentile = percentiles["Bearer"]["low_percentile"]
+                                    score += weight * bearer_percentile  # Multiply weight by low percentile for Bearer
+                                            
+        
+                                else:
+                                    st.warning(f"Percentile data for {tool} could not be retrieved.")
+                                    
+                            trust_score = 100 - score  # Subtract total weighted score from 100
+                            st.success(f"Calculated Trust Score: {trust_score}")
+                            def make_donut(trust_score):
+    # Define the green color scheme
+                                colors = ['#1dda6d', '#12783D']  # Lighter green for Trust, darker green for background
                                 
-                        trust_score = 100 - score  # Subtract total weighted score from 100
-                        st.success(f"Calculated Trust Score: {trust_score}")
-                        fig = go.Figure(go.Pie(
-                            values=[trust_score, 100-trust_score],
-                            labels=["Trust", "Untrusted"],
-                            marker=dict(colors=["#4CAF50", "#000000"]),
-                            hole=0.3,  # This creates the donut shape
-                            direction="clockwise",
-                            textinfo="percent",  # Display percentages on the chart
-                            showlegend=False
-                        ))
+                                # Create the Plotly figure
+                                fig = go.Figure(go.Pie(
+                                    values=[trust_score, 100 - trust_score],  # Trust and untrusted values
+                                    labels=["Trust", "Untrusted"],  # Chart labels
+                                    marker=dict(colors=colors),  # Apply the green colors
+                                    hole=0.7,  # Create the donut shape
+                                    direction="clockwise",  # Rotate clockwise
+                                    textinfo="none",  # Hide percentage values on the chart
+                                    showlegend=False  # Hide legend
+                                ))
+                                trust_score=round(trust_score,2)
+                                # Add the trust score as a centered annotation
+                                fig.add_annotation(
+                                    text=f"<b>{trust_score}%</b>",  # Display the trust score
+                                    font=dict(size=18, color='#00ff6c'),  # Use the lighter green for text
+                                    showarrow=False,
+                                    x=0.5, y=0.5,  # Center the text
+                                    xref="paper", yref="paper"
+                                )
+                                
+                                # Update layout for better styling
+                                fig.update_layout(
+                                    width=400,  # Set chart width
+                                    height=400,  # Set chart height
+                                    margin=dict(t=10, b=10, l=10, r=10),  # Adjust margins
+                                )
+                                
+                                return fig
 
-                        fig.update_layout(
-                            width=400,  # Set the width of the chart
-                            height=400,  # Set the height of the chart
-                            margin=dict(t=20, b=20, l=20, r=20),  # Adjust margins
-                        )
-                        st.subheader("Trust score")
-                        # Display the donut chart in Streamlit
-                        st.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)
-                        st.plotly_chart(fig, use_container_width=False)
-                        st.markdown("</div>", unsafe_allow_html=True)
- 
-                        alt.theme.enable("dark")
+                            # Generate the donut chart
+                            donut_chart = make_donut(trust_score)
 
-                        # Assuming parameter_counts is a dictionary with tool and parameter counts
-                        labels = []
-                        counts = []
-                        tools = ["Gitleaks", "Guarddog", "Safety", "Bearer"]  # Just an example, replace with your tool names
-                        for tool, params in parameter_counts.items():
-                            for param, count in params.items():
-                                labels.append(f"{tool} - {param}")
-                                counts.append(count)
+                            # Display the donut chart in a column
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                st.subheader("Trust Score")
+                                st.plotly_chart(donut_chart, use_container_width=False)
+        
+                            alt.theme.enable("dark")
 
-                        # Create a DataFrame similar to the fruits example
-                        df = pd.DataFrame({"labels": labels, "counts": counts})
+                            # Assuming parameter_counts is a dictionary with tool and parameter counts
+                            labels = []
+                            counts = []
+                            tools = ["Gitleaks", "Guarddog", "Safety", "Bearer"]  # Just an example, replace with your tool names
+                            for tool, params in parameter_counts.items():
+                                for param, count in params.items():
+                                    labels.append(f"{tool} - {param}")
+                                    counts.append(count)
 
-                        # Define custom colors for each tool/parameter label
-                        color_domain = labels  # Use the unique labels from the dataset
-                        color_range = ["skyblue", "lightgreen", "lightcoral", "gold", "lightpink", "lightyellow", "lightgray"]  # Example colors, repeat as needed
+                            # Create a DataFrame similar to the fruits example
+                            df = pd.DataFrame({"labels": labels, "counts": counts})
 
-                        # Create the Altair chart
-                        chart = (
-                            alt.Chart(df)
-                            .mark_bar()
-                            .encode(
-                                x=alt.X("labels"),  # Sorting based on the count or alphabetically
-                                y="counts",
-                                color=alt.Color(
-                                    "labels",
-                                    scale=alt.Scale(
-                                        domain=color_domain,
-                                        range=color_range,
+                            # Define custom colors for each tool/parameter label
+                            color_domain = labels  # Use the unique labels from the dataset
+                            color_range = ["skyblue", "lightgreen", "lightcoral", "gold", "lightpink", "lightyellow", "lightgray"]  # Example colors, repeat as needed
+
+                            # Create the Altair chart
+                            chart = (
+                                alt.Chart(df)
+                                .mark_bar()
+                                .encode(
+                                    x=alt.X("labels"),  # Sorting based on the count or alphabetically
+                                    y="counts",
+                                    color=alt.Color(
+                                        "labels",
+                                        scale=alt.Scale(
+                                            domain=color_domain,
+                                            range=color_range,
+                                        ),
+                                        legend=None
                                     ),
-                                    legend=None
-                                ),
+                                )
+                                .properties(
+                                    width=900,  # Set the chart width
+                                    height=500  # Set the chart height
+                                )
                             )
-                            .properties(
-                                width=900,  # Set the chart width
-                                height=500  # Set the chart height
-                            )
-                        )
-                        st.subheader("Parameter Counts by selected tools")
-                        # Display the chart in Streamlit
-                        st.altair_chart(chart, use_container_width=True)
+                            with col2: 
+                                st.subheader("Parameter Counts by selected tools")
+                                # Display the chart in Streamlit
+                                st.altair_chart(chart, use_container_width=True)
                         
                     else:
                         st.error(f"API Gateway Error: {response.status_code}")

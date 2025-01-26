@@ -3,3 +3,4 @@ Requests==2.32.3
 streamlit==1.41.1
 matplotlib==3.10.0
 plotly
+streamlit-flow-component
