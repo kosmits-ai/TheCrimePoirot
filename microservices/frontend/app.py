@@ -16,6 +16,7 @@ from streamlit_flow.elements import StreamlitFlowNode, StreamlitFlowEdge
 from streamlit_flow.state import StreamlitFlowState
 
 load_dotenv()
+NGINX_URL = os.getenv("NGINX_URL")
 
 API_GATEWAY_URL = os.getenv("API_GATEWAY_URL")
 UPDATE_DB_URL = os.getenv("UPDATE_DB_URL")
@@ -54,6 +55,7 @@ def main():
         width: 300px;  /* Set the button width */
         height: 50px;  /* Set the button height */
     }
+        
         [data-testid="stSidebar"]{
         background-color: #212121;
         color: #333;
@@ -113,7 +115,7 @@ def main():
                     StreamlitFlowNode('2', (300,0), {'content': 'Select from available tools'}, 'default', 'bottom', 'left', draggable=False),
                     StreamlitFlowNode('3', (300, 200), {'content': 'Define the weights'}, 'default', 'right', 'top', draggable=False),
                     StreamlitFlowNode('4', (500, 100), {'content': 'Run analysis'}, 'default', 'right', 'left', draggable=False),
-                     StreamlitFlowNode('5', (700, 100), {'content': 'Choose tab'},'default', 'right', 'left', draggable=False),
+                    StreamlitFlowNode('5', (700, 100), {'content': 'Choose tab'},'default', 'right', 'left', draggable=False),
                     StreamlitFlowNode('6', (850,0), {'content': 'View Analyis report'}, 'default', 'bottom', 'bottom', draggable=False),
                     StreamlitFlowNode('7', (850,200), {'content': 'View CrimePoirot report'}, 'default', 'bottom', 'top', draggable=False)
 ]
@@ -298,7 +300,7 @@ def main():
             with st.spinner("Running scripts... Please wait."):
                 try:
                     # POST request to API Gateway for analysis
-                    response = requests.post(f"{API_GATEWAY_URL}/analyze", json=payload)
+                    response = requests.post(f"{NGINX_URL}/analyze", json=payload)
                     
                     if response.status_code == 200:
                         result_data = response.json()
@@ -308,7 +310,7 @@ def main():
                             st.json(result_data)
                             # Fetch additional results
                             tools_param = '&'.join([f'tools={tool}' for tool in payload["tools"]])
-                            url = f"{API_GATEWAY_URL}/final_results/{repo_name}?{tools_param}"
+                            url = f"{NGINX_URL}/final_results/{repo_name}?{tools_param}"
                             final_results = requests.get(url)
                             
                             if final_results.status_code == 200:
@@ -319,7 +321,7 @@ def main():
                             percentiles = {}
                             # Fetch percentile data if needed
                             for tool in payload["tools"]:
-                                percentile_response = requests.get(f"{API_GATEWAY_URL}/percentile/{tool}/{repo_name}")
+                                percentile_response = requests.get(f"{NGINX_URL}/percentile/{tool}/{repo_name}")
                                 if percentile_response.status_code == 200:
                                     data = percentile_response.json()
                                     if tool == "Gitleaks":
@@ -388,9 +390,9 @@ def main():
                                     
                             trust_score = 100 - score  # Subtract total weighted score from 100
                             st.success(f"Calculated Trust Score: {trust_score}")
-                            def make_donut(trust_score):
+                            def make_donut(trust_score, colors):
     # Define the green color scheme
-                                colors = ['#1dda6d', '#12783D']  # Lighter green for Trust, darker green for background
+                              # Lighter green for Trust, darker green for background
                                 
                                 # Create the Plotly figure
                                 fig = go.Figure(go.Pie(
@@ -406,7 +408,7 @@ def main():
                                 # Add the trust score as a centered annotation
                                 fig.add_annotation(
                                     text=f"<b>{trust_score}%</b>",  # Display the trust score
-                                    font=dict(size=18, color='#00ff6c'),  # Use the lighter green for text
+                                    font=dict(size=18, color='#ffffff'),  # Use the lighter green for text
                                     showarrow=False,
                                     x=0.5, y=0.5,  # Center the text
                                     xref="paper", yref="paper"
@@ -420,9 +422,12 @@ def main():
                                 )
                                 
                                 return fig
-
+                            if trust_score > 50:
+                                colors = ['#1dda6d', '#12783D']
+                            else:
+                                colors = ['#E74C3C', '#781F16']
                             # Generate the donut chart
-                            donut_chart = make_donut(trust_score)
+                            donut_chart = make_donut(trust_score,colors)
 
                             # Display the donut chart in a column
                             col1, col2 = st.columns(2)
@@ -454,15 +459,15 @@ def main():
                                 .mark_bar()
                                 .encode(
                                     x=alt.X("labels"),  # Sorting based on the count or alphabetically
-                                    y="counts",
+                                    y=alt.Y("counts", scale=alt.Scale(domain=[0, max(df['counts'])])),  # Ensure y-axis starts at 0                                    color=alt.Color(
                                     color=alt.Color(
-                                        "labels",
-                                        scale=alt.Scale(
-                                            domain=color_domain,
-                                            range=color_range,
-                                        ),
-                                        legend=None
-                                    ),
+                                            "labels",
+                                            scale=alt.Scale(
+                                                domain=color_domain,
+                                                range=color_range,
+                                            ),
+                                                legend=None
+                                           ),
                                 )
                                 .properties(
                                     width=900,  # Set the chart width
@@ -532,32 +537,35 @@ def main():
 
         
         ############    KEIMENO GIA TO CREATE DATABASE
-        update_db_button = st.button("Update DataBase")
-        if update_db_button:
-            with st.spinner("Updating DataBase...This will take some hours."):
-                try:
-                    # Send POST request to the update_db service
-                    response = requests.post(f"{UPDATE_DB_URL}/update_db")
-                    
-                    # Check if the request was successful
-                    if response.status_code == 200:
-                        result = response.json()
-                        st.success("DataBase updated successfully.")
-                        st.json(result)
-                        try:
-                            # Attempt to parse JSON response
-                            print(response.json())  # This prints the JSON response from the API
-                        except ValueError:
-                            print("Response is not in JSON format")
-                            print(response.text)  # Print raw content if it's not JSON
-                    else:
-                        st.error(f"Error updating DataBase: {response.status_code}")
-                        st.text(response.text)
+        col1, col2 = st.columns(2)
+        with col1:
+            update_db_button = st.button("Update DataBase")
+            if update_db_button:
+                with st.spinner("Updating DataBase...This will take some hours."):
+                    try:
+                        # Send POST request to the update_db service
+                        response = requests.post(f"{NGINX_URL}/update_db")
+                        
+                        # Check if the request was successful
+                        if response.status_code == 200:
+                            result = response.json()
+                            st.success("DataBase updated successfully.")
+                            st.json(result)
+                            try:
+                                # Attempt to parse JSON response
+                                print(response.json())  # This prints the JSON response from the API
+                            except ValueError:
+                                print("Response is not in JSON format")
+                                print(response.text)  # Print raw content if it's not JSON
+                        else:
+                            st.error(f"Error updating DataBase: {response.status_code}")
+                            st.text(response.text)
 
-                except requests.ConnectionError:
-                    st.error("Error: Unable to connect to the API Gateway.")
-                except Exception as e:
-                    st.error(f"An unexpected error occurred: {e}")
+                    except requests.ConnectionError:
+                        st.error("Error: Unable to connect to the API Gateway.")
+                    except Exception as e:
+                        st.error(f"An unexpected error occurred: {e}")
+        
         create_db_button = st.button("Create DataBase")
         if create_db_button:
             with st.spinner("Creating DataBase...This will take some hours."):
