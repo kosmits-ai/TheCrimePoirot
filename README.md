@@ -1,3 +1,4 @@
+![CrimePoirot Logo](images/logo_official.png)
 # TheCrimePoirot
 ## **Introduction**
 My work for my diploma thesis _Detection of Vulnerabilities/Malware in Open Source Platforms with Python_.
