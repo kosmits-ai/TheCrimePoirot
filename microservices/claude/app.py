@@ -37,7 +37,7 @@ def serialize_mongo_data(data):
     else:
         return data  # Return other types as is
 
-def prepare_findings_claude(results):
+def prepare_findings_claude(results, tools):
     # Serialize MongoDB results before sending to Claude API
     serialized_results = serialize_mongo_data(results)
     
@@ -48,10 +48,12 @@ def prepare_findings_claude(results):
     In the provided data, findings are organised according to the tool name. Analyze those findings, categorize the dangers and recommend possible fixes for the client.
     Findings data:
     {json_data}
+    Selected tools:
+    {tools}
     Please do the following:
-    1. Analyze the findings for every available tool.
-    2. Categorize the dangers according to the security risk.
-    3. Recommend possible fixes to the problem.
+    1. Analyze the findings for every available tool in plain text.
+    2. Recommend possible fixes for every security problem.
+    3. Based on the dangers, categorize the repository to SAFE, NEUTRAL SECURITY, or DANGEROUS.
     """
     return prompt
 
@@ -105,7 +107,7 @@ def scan_claude():
             return jsonify({"error": "No results found"}), 404
         
         # Prepare and get Claude's response
-        prompt = prepare_findings_claude(results)
+        prompt = prepare_findings_claude(results,tools)
         comment = get_claude_response(prompt)
         
         return jsonify({"output": comment}), 200

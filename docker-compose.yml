@@ -106,8 +106,8 @@ services:
 
   api_gateway:
     image: kosmits/thecrimepoirot:api_gateway-1.0.1
-    ports:
-      - "5007:5007"
+    expose:
+      - "5007"
     env_file:
       - .env
     networks:
@@ -125,9 +125,24 @@ services:
     dns:
       - 8.8.8.8  # Google DNS
       - 8.8.4.4  # Google DNS
-
+  api_gateway_2:
+    image: kosmits/thecrimepoirot:api_gateway-1.0.1
+    networks:
+      crimepoirot_network:
+        ipv4_address: ${API_GATEWAY_IP_2}
+    ports:
+      - "5020:5007"
+    env_file:
+      - .env
+    depends_on:
+      - gitleaks
+      - guarddog
+      - safety
+      - bearer
+      - calculate_percentile
   frontend:
-    image: kosmits/thecrimepoirot:frontend-1.0.2
+    build:
+      context: ./microservices/frontend
     ports:
       - "8501:8501"
     env_file:
@@ -146,7 +161,7 @@ services:
       - 8.8.4.4  # Google DNS
 
   update_db:
-    image: kosmits/thecrimepoirot:update_db-1.0.1
+    image: kosmits/thecrimepoirot:update_db-1.0.2
     ports:
       - "5008:5008"
     env_file:
@@ -168,7 +183,33 @@ services:
     dns:
       - 8.8.8.8  # Google DNS
       - 8.8.4.4  # Google DNS
+  
+  nginx:
+    image: kosmits/thecrimepoirot:nginx-1.0.4
+    volumes:
+    - ./microservices/nginx/nginx.conf.template:/etc/nginx/nginx.conf.template:ro  # Mount your nginx.conf.template file here
+    ports:
+      - "80:80"  # Expose port 80 for incoming requests
+    networks:
+      - crimepoirot_network
+    env_file: .env
+    depends_on:
+      - api_gateway
+      - frontend  # NGINX will depend on both frontend and api_gateway services
+    restart: always
 
+  claude: 
+    build:
+      context: ./microservices/claude
+    ports:
+      - "5014:5014"
+    networks: 
+      crimepoirot_network:
+        ipv4_address: ${CLAUDE_IP}
+    env_file: .env
+    depends_on:
+      - frontend
+    
 networks:
   crimepoirot_network:
     external: true
@@ -176,3 +217,4 @@ networks:
     ipam:
       config:
         - subnet: ${CRIMEPOIROT_SUBNET}
+   

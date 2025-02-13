@@ -27,7 +27,13 @@ def main():
         initial_sidebar_state="auto",
         page_icon="🔍"
     )
-    
+    cols1,cols2,cols3 = st.columns(3)
+    with cols1:
+        st.write("")
+    with cols2:
+        st.image("poirotlogo.jpg")
+    with cols3:
+        st.write("")
     # Header with Times New Roman font style
     st.markdown(
         """
@@ -82,10 +88,11 @@ def main():
         """,
         unsafe_allow_html=True
     )
-    st.markdown("<div class='main-title'>CrimePoirot</div>", unsafe_allow_html=True)
-    st.markdown("<div class='sub-title'>Your GitHub Repository Analyzer</div>", unsafe_allow_html=True)
-    st.write("---")
 
+    #st.markdown("<div class='main-title'>CrimePoirot</div>", unsafe_allow_html=True)
+    #st.markdown("<div class='sub-title'>Your GitHub Repository Analyzer</div>", unsafe_allow_html=True)
+    #st.write("---")
+    
     # Tabs for navigation
     tabs = st.tabs(["🏠 Home", "🛠️ Run Scripts","📊 DB CrimePoirot", "ℹ️ About"])
     
@@ -99,7 +106,8 @@ def main():
             - **Supply Chain Risk Assessment**: Employs **Guarddog** to identify potential risks in dependencies and supply chains.
             - **Dependency Vulnerability Scanning**: Leverages **Safety** to analyze and detect vulnerabilities in project dependencies.
             - **Sensitive Data Analysis**: Uses **Bearer** to scan codebases for sensitive data exposure, ensuring robust data security.
-
+            - **Fixes for issues**: Uses Claude 3.5 sonnet to analyze the results and provide possible fixes.
+            
             ### 🚀 **How to Use CrimePoirot**
 
             1. **Enter the GitHub Repository URL**: Provide the URL of the repository you want to analyze.
@@ -116,8 +124,10 @@ def main():
                     StreamlitFlowNode('3', (300, 200), {'content': 'Define the weights'}, 'default', 'right', 'top', draggable=False),
                     StreamlitFlowNode('4', (500, 100), {'content': 'Run analysis'}, 'default', 'right', 'left', draggable=False),
                     StreamlitFlowNode('5', (700, 100), {'content': 'Choose tab'},'default', 'right', 'left', draggable=False),
-                    StreamlitFlowNode('6', (850,0), {'content': 'View Analyis report'}, 'default', 'bottom', 'bottom', draggable=False),
-                    StreamlitFlowNode('7', (850,200), {'content': 'View CrimePoirot report'}, 'default', 'bottom', 'top', draggable=False)
+                    StreamlitFlowNode('6', (850,0), {'content': 'View Analyis report'}, 'default','bottom','bottom', draggable=False),
+                    StreamlitFlowNode('7', (850,200), {'content': 'View CrimePoirot report'}, 'default','top', draggable=False),
+                    StreamlitFlowNode('8', (1000,100), {'content': 'Ask Claude'}, 'default','left','left',draggable=False)
+
 ]
 
         edges = [StreamlitFlowEdge('1-2', '1', '2', animated=True),
@@ -125,7 +135,9 @@ def main():
                     StreamlitFlowEdge('3-4', '3', '4', animated=True),
                     StreamlitFlowEdge('4-5', '4', '5', animated=True),
                     StreamlitFlowEdge('5-6', '5', '6', animated=True),
-                    StreamlitFlowEdge('5-7', '5', '7', animated=True)]
+                    StreamlitFlowEdge('5-7', '5', '7', animated=True),
+                    StreamlitFlowEdge('5-8', '5', '8', animated=True)
+]
 
         state = StreamlitFlowState(nodes, edges)
 
@@ -135,7 +147,7 @@ def main():
                             get_node_on_click=True,
                             get_edge_on_click=True)
 
-        st.write(f"Clicked on: {updated_state.selected_id}")  
+        #st.write(f"Clicked on: {updated_state.selected_id}")  
         
 
 
@@ -273,24 +285,6 @@ def main():
         # Run Analysis Button
         run_analysis_button = st.button("Run Analysis", disabled=run_analysis_disabled)
         repo_name = repo_url.split("/")[-1].replace(".git", "")
-        if "parameter_counts" not in st.session_state:
-                st.session_state.parameter_counts = {
-                    "Gitleaks": {
-                        "leaks": 0
-                    },
-                    "Guarddog": {
-                        "malicious_indicators": 0  
-                    },
-                    "Safety": {
-                        "vulns": 0
-                    },
-                    "Bearer": {
-                        "critical": 0,
-                        "high": 0,
-                        "medium": 0,
-                        "low": 0,
-                    }
-                }
 
         if run_analysis_button:
             
@@ -302,10 +296,7 @@ def main():
             # Check if at least one tool is selected
             if not any(selected_tools.values()):
                 st.warning("Please select at least one tool to run.")
-            
-            
-        # Access and modify parameter_counts
-            parameter_counts = st.session_state.parameter_counts
+
 
             # API calls within a spinner
             with st.spinner("Running scripts... Please wait."):
@@ -341,31 +332,49 @@ def main():
                     st.error(f"Error fetching final results: {final_results.status_code}")
                     st.text(final_results.text)
                 percentiles = {}
+                parameter_counts = {
+                    "Gitleaks": {
+                        "leaks": 0
+                    },
+                    "Guarddog": {
+                        "malicious_indicators": 0  
+                    },
+                    "Safety": {
+                        "vulns": 0
+                    },
+                    "Bearer": {
+                        "critical": 0,
+                        "high": 0,
+                        "medium": 0,
+                        "low": 0,
+                    }
+                }
+
                 # Fetch percentile data if needed
                 for tool in payload["tools"]:
                     percentile_response = requests.get(f"{NGINX_URL}/percentile/{tool}/{repo_name}")
                     if percentile_response.status_code == 200:
                         data = percentile_response.json()
                         if tool == "Gitleaks":
-                            st.session_state.parameter_counts["Gitleaks"]["leaks"] = data["leaks"]
+                            parameter_counts["Gitleaks"]["leaks"] = data["leaks"]
                             percentiles["Gitleaks"] = {
                                 "percentile": data["percentile"]
                             }
                         elif tool == "Guarddog":
-                            st.session_state.parameter_counts["Guarddog"]["malicious_indicators"] = data["Guarddog findings"]
+                            parameter_counts["Guarddog"]["malicious_indicators"] = data["Guarddog findings"]
                             percentiles["Guarddog"] = {
                                 "percentile": data["percentile"]
                             }
                         elif tool == "Safety":
-                            st.session_state.parameter_counts["Safety"]["vulns"] = data["Safety findings"]
+                            parameter_counts["Safety"]["vulns"] = data["Safety findings"]
                             percentiles["Safety"] = {
                                 "percentile": data["percentile"]
                             }
                         elif tool == "Bearer":
-                            st.session_state.parameter_counts["Bearer"]["critical"] = data["critical vulnerabilities"]
-                            st.session_state.parameter_counts["Bearer"]["high"] = data["high vulnerabilities"]
-                            st.session_state.parameter_counts["Bearer"]["medium"] = data["medium vulnerabilities"]
-                            st.session_state.parameter_counts["Bearer"]["low"] = data["low vulnerabilities"]
+                            parameter_counts["Bearer"]["critical"] = data["critical vulnerabilities"]
+                            parameter_counts["Bearer"]["high"] = data["high vulnerabilities"]
+                            parameter_counts["Bearer"]["medium"] = data["medium vulnerabilities"]
+                            parameter_counts["Bearer"]["low"] = data["low vulnerabilities"]
                             percentiles["Bearer"] = {
                                 "critical_percentile": data["critical percentile"],
                                 "high_percentile": data["high percentile"],
@@ -464,7 +473,7 @@ def main():
                 counts = []
                 tools = ["Gitleaks", "Guarddog", "Safety", "Bearer"]  # Just an example, replace with your tool names
                 tools_claude = ["gitleaks", "guarddog", "safety", "bearer"]
-                for tool, params in st.session_state.parameter_counts.items():
+                for tool, params in parameter_counts.items():
                     for param, count in params.items():
                         labels.append(f"{tool} - {param}")
                         counts.append(count)
@@ -647,17 +656,22 @@ def main():
             - **Guarddog**: Identifies supply chain risks in Python dependencies.
             - **Safety**: Checks for known vulnerabilities in dependencies.
             - **Bearer**: Scans for sensitive data exposure.
+            - **Claude 3.5 sonnet**: Provides fixes for repository security issues.
 
             ### 🛠️ Made With:
             - **Python**
             - **Streamlit** for UI
-            - **MongoDB** for data storage
+            - **MongoDB Atlas** for data storage
 
-            ### 🤖 Project source code:
-            [CrimePoirot Repository](https://github.com/kosmits-ai/TheCrimePoirot)
+            ### 🤖 Project source:
+            
             """
         )
-    
+        cols1,cols2 = st.columns(2)
+        with cols1:
+            st.link_button("Go to CrimePoirot Repository", "https://github.com/kosmits-ai/TheCrimePoirot/tree/dockertest")
+        with cols2:
+            st.link_button("Go to DockerHub Repository", "https://hub.docker.com/repository/docker/kosmits/thecrimepoirot/general")
     # Footer
     st.markdown(
         "<div class='footer'>© 2024 CrimePoirot - Built by Konstantinos Mitsionis</div>",
