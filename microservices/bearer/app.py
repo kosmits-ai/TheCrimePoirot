@@ -32,15 +32,17 @@ def run_bearer():
         if os.path.exists(repo_path):
             shutil.rmtree(repo_path)  # Remove existing repository  in order to get the latest commit every time.
         
+        subprocess.run(["git", "clone", repo_url, repo_path], check=True)
 
-        os.chdir(repo_path)
+        #os.chdir(repo_path)
 
         # Run Bearer scan
         result = subprocess.run(
             ['bearer', 'scan', '.', '--exit-code', '0'],
             check=True,
             capture_output=True,
-            text=True
+            text=True,
+            cwd=repo_path
         )
 
         print("Scan completed successfully.")
@@ -79,7 +81,7 @@ def run_bearer():
 
             # Store results in MongoDB
             response = requests.post(
-                f"http://{MONGODB_SERVICE_URL}/bearer/reports",
+                f"{MONGODB_SERVICE_URL}/bearer/reports",
                 json=scan_summary
             )
 
@@ -105,7 +107,7 @@ def run_bearer():
                 "vulnerabilities": 0
             }
             response = requests.post(
-                f"http://{MONGODB_SERVICE_URL}/bearer/reports",
+                f"{MONGODB_SERVICE_URL}/bearer/reports",
                 json=scan_summary
             )
 
@@ -121,12 +123,13 @@ def run_bearer():
             
 
     except subprocess.CalledProcessError as e:
+        stderr_message = e.stderr.strip() if e.stderr else "No error message available"
         return jsonify({
-            "status": "error",
-            "tool": "bearer",
-            "message": f"Subprocess error: {e.stderr.strip()}",
-            "data": None
-        }), 500
+        "status": "error",
+        "tool": "bearer",
+        "message": f"Subprocess error: {stderr_message}",
+        "data": None
+    }), 500
     except Exception as e:
         return jsonify({
             "status": "error",
@@ -139,7 +142,7 @@ def run_bearer():
 def bearer_final(repo_name):
     try:
         # Retrieve Bearer report from MongoDB
-        response = requests.get(f"http://{MONGODB_SERVICE_URL}/bearer/reports/{repo_name}")
+        response = requests.get(f"{MONGODB_SERVICE_URL}/bearer/reports/{repo_name}")
         
         if response.status_code == 200:
             response_data = response.json()
@@ -166,7 +169,7 @@ def bearer_final(repo_name):
                 }
                 
                 # Insert the results into the `final_results` collection
-                insert_result = requests.post(f"http://{MONGODB_SERVICE_URL}/final_results/reports", json=document)
+                insert_result = requests.post(f"{MONGODB_SERVICE_URL}/final_results/reports", json=document)
                 
                 if insert_result.status_code == 200:
                     return jsonify({"status": "success", "message": "Results stored successfully"}), 200

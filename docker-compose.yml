@@ -1,0 +1,220 @@
+services:
+  mongo-service:
+    image: kosmits/thecrimepoirot:mongo-service-1.0.1
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    runtime: runc
+    networks:
+      crimepoirot_network:
+        ipv4_address: ${MONGO_SERVICE_IP}
+    dns:
+      - 8.8.8.8  # Google DNS
+      - 8.8.4.4  # Google DNS
+
+  gitleaks:
+    image: kosmits/thecrimepoirot:gitleaks-1.0.1
+    ports:
+      - "5001:5001"
+    env_file:
+      - .env
+    networks:
+      crimepoirot_network:
+        ipv4_address: ${GITLEAKS_IP}
+    depends_on:
+      - mongo-service
+    runtime: runsc
+    volumes:
+      - /home/vboxuser/Documents/RepoForTest:/app/RepoForTest
+    dns:
+      - 8.8.8.8  # Google DNS
+      - 8.8.4.4  # Google DNS
+
+  guarddog:
+    image: kosmits/thecrimepoirot:guarddog-1.0.1
+    ports:
+      - "5002:5002"
+    env_file:
+      - .env
+    networks:
+      crimepoirot_network:
+        ipv4_address: ${GUARDDOG_IP}
+    depends_on:
+      - mongo-service
+    runtime: runsc
+    volumes:
+      - /home/vboxuser/Documents/RepoForTest:/app/RepoForTest
+    dns:
+      - 8.8.8.8  # Google DNS
+      - 8.8.4.4  # Google DNS
+
+  safety:
+    image: kosmits/thecrimepoirot:safety-1.0.1
+    ports:
+      - "5003:5003"
+    env_file:
+      - .env
+    networks:
+      crimepoirot_network:
+        ipv4_address: ${SAFETY_IP}
+    depends_on:
+      - mongo-service
+    runtime: runsc
+    volumes:
+      - /home/vboxuser/Documents/RepoForTest:/app/RepoForTest
+    dns:
+      - 8.8.8.8  # Google DNS
+      - 8.8.4.4  # Google DNS
+
+  bearer:
+    image: kosmits/thecrimepoirot:bearer-1.0.1
+    ports:
+      - "5004:5004"
+    env_file:
+      - .env
+    networks:
+      crimepoirot_network:
+        ipv4_address: ${BEARER_IP}
+    runtime: runsc
+    depends_on:
+      - mongo-service
+    volumes:
+      - /home/vboxuser/Documents/RepoForTest:/app/RepoForTest
+    dns:
+      - 8.8.8.8  # Google DNS
+      - 8.8.4.4  # Google DNS
+
+  calculate_percentile:
+    image: kosmits/thecrimepoirot:calculate_percentile-1.0.1
+    ports:
+      - "5005:5005"
+    env_file:
+      - .env
+    volumes:
+      - ./report.csv:/app/report.csv
+      - /home/vboxuser/Documents/RepoForTest:/app/RepoForTest
+    runtime: runc
+    networks:
+      crimepoirot_network:
+        ipv4_address: ${PERCENTILE_SERVICE_IP}
+    depends_on:
+      - mongo-service
+    dns:
+      - 8.8.8.8  # Google DNS
+      - 8.8.4.4  # Google DNS
+
+  api_gateway:
+    image: kosmits/thecrimepoirot:api_gateway-1.0.1
+    expose:
+      - "5007"
+    env_file:
+      - .env
+    networks:
+      crimepoirot_network:
+        ipv4_address: ${API_GATEWAY_IP}
+    runtime: runc
+    depends_on:
+      - gitleaks
+      - guarddog
+      - safety
+      - bearer
+      - calculate_percentile
+    volumes:
+      - /home/vboxuser/Documents/RepoForTest:/app/RepoForTest
+    dns:
+      - 8.8.8.8  # Google DNS
+      - 8.8.4.4  # Google DNS
+  api_gateway_2:
+    image: kosmits/thecrimepoirot:api_gateway-1.0.1
+    networks:
+      crimepoirot_network:
+        ipv4_address: ${API_GATEWAY_IP_2}
+    ports:
+      - "5020:5007"
+    env_file:
+      - .env
+    depends_on:
+      - gitleaks
+      - guarddog
+      - safety
+      - bearer
+      - calculate_percentile
+  frontend:
+    build:
+      context: ./microservices/frontend
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    volumes:
+      - ./images:/app/images
+      - /home/vboxuser/Documents/RepoForTest:/app/RepoForTest
+    runtime: runc
+    networks:
+      crimepoirot_network:
+        ipv4_address: ${FRONTEND_IP}
+    depends_on:
+      - api_gateway
+    dns:
+      - 8.8.8.8  # Google DNS
+      - 8.8.4.4  # Google DNS
+
+  update_db:
+    image: kosmits/thecrimepoirot:update_db-1.0.2
+    ports:
+      - "5008:5008"
+    env_file:
+      - .env
+    runtime: runc
+    networks:
+      crimepoirot_network:
+        ipv4_address: ${UPDATE_DB_IP}
+    depends_on:
+      - mongo-service
+      - gitleaks
+      - guarddog
+      - safety
+      - bearer
+      - api_gateway
+    volumes:
+      - ./report.csv:/app/report.csv
+      - /home/vboxuser/Documents/RepoForTest:/app/RepoForTest
+    dns:
+      - 8.8.8.8  # Google DNS
+      - 8.8.4.4  # Google DNS
+  
+  nginx:
+    image: kosmits/thecrimepoirot:nginx-1.0.4
+    volumes:
+    - ./microservices/nginx/nginx.conf.template:/etc/nginx/nginx.conf.template:ro  # Mount your nginx.conf.template file here
+    ports:
+      - "80:80"  # Expose port 80 for incoming requests
+    networks:
+      - crimepoirot_network
+    env_file: .env
+    depends_on:
+      - api_gateway
+      - frontend  # NGINX will depend on both frontend and api_gateway services
+    restart: always
+
+  claude: 
+    build:
+      context: ./microservices/claude
+    ports:
+      - "5014:5014"
+    networks: 
+      crimepoirot_network:
+        ipv4_address: ${CLAUDE_IP}
+    env_file: .env
+    depends_on:
+      - frontend
+    
+networks:
+  crimepoirot_network:
+    external: true
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${CRIMEPOIROT_SUBNET}
+   

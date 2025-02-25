@@ -1,0 +1,5 @@
+anthropic
+Flask
+pymongo
+requests
+python-dotenv

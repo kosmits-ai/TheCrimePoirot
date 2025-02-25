@@ -1,0 +1,163 @@
+openapi: 3.0.0
+info:
+  title: CrimePoirot API
+  description: API documentation for the CrimePoirot project. This API enables repository analysis using Gitleaks and integration with MongoDB.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:5001
+    description: Local development server
+
+paths:
+  /analyze:
+    post:
+      summary: Run Gitleaks on a repository
+      description: Clones a Git repository, runs Gitleaks, and stores the results in MongoDB.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                repo_url:
+                  type: string
+                  description: URL of the Git repository to analyze.
+                  example: "https://github.com/example/repo.git"
+      responses:
+        '200':
+          description: Gitleaks scan completed successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  tool:
+                    type: string
+                    example: "Gitleaks"
+                  message:
+                    type: string
+                    example: "Gitleaks scan completed successfully."
+                  data:
+                    type: object
+                    example:
+                      leak1:
+                        type: "Hardcoded API key"
+                        file: "example.py"
+                        line: 10
+                      leak2:
+                        type: "Secret in environment variable"
+                        file: "config.env"
+                        line: 25
+        '400':
+          description: Bad request due to missing repository URL.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  message:
+                    type: string
+                    example: "Repository URL is required."
+        '404':
+          description: Gitleaks executable not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  tool:
+                    type: string
+                    example: "Gitleaks"
+                  message:
+                    type: string
+                    example: "Gitleaks executable not found."
+        '500':
+          description: Internal server error or Gitleaks failed for some reason.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  tool:
+                    type: string
+                    example: "Gitleaks"
+                  message:
+                    type: string
+                    example: "An internal server error occurred."
+
+  /Gitleaks/{repo_name}/final_results:
+    get:
+      summary: Retrieve final Gitleaks results for a repository
+      description: Fetches the Gitleaks analysis results from MongoDB for a given repository and updates the final_results collection.
+      parameters:
+        - name: repo_name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Name of the repository.
+          example: "repo"
+      responses:
+        '200':
+          description: Successfully retrieved and processed the Gitleaks results.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  report:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                          example: "Hardcoded API key"
+                        file:
+                          type: string
+                          example: "example.py"
+                        line:
+                          type: integer
+                          example: 10
+        '404':
+          description: Report or leaks key not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  message:
+                    type: string
+                    example: "Leaks key not found in the report."
+        '500':
+          description: Internal server error or JSON decoding error.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  message:
+                    type: string
+                    example: "An internal server error occurred."

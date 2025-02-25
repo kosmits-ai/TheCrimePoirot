@@ -46,6 +46,8 @@ def analyze_repo():
             capture_output=True,
             text=True
         )
+        print(process.stdout)
+        print(process.stderr)
         if process.returncode != 0:
             return jsonify({"status": "error", "tool": "guarddog", "message": process.stderr.strip(), "data": None}), 500
 
@@ -79,7 +81,7 @@ def analyze_repo():
 
         # Store results in MongoDB
         response = requests.post(
-            f"http://{MONGODB_SERVICE_URL}/guarddog/reports",
+            f"{MONGODB_SERVICE_URL}/guarddog/reports",
             json=document
         )
         if response.status_code != 200:
@@ -97,7 +99,7 @@ def analyze_repo():
 def guarddog_final(repo_name):
     try:
         # Retrieve Guarddog report from MongoDB
-        response = requests.get(f"http://{MONGODB_SERVICE_URL}/guarddog/reports/{repo_name}")
+        response = requests.get(f"{MONGODB_SERVICE_URL}/guarddog/reports/{repo_name}")
         
         if response.status_code == 200:
             response_data = response.json()
@@ -110,7 +112,7 @@ def guarddog_final(repo_name):
                 
                 if results == "No suspicious findings":
                     document = {"tool": "guarddog", "repo_name": repo_name, "malicious_indications": 0}
-                    insert_result = requests.post(f"http://{MONGODB_SERVICE_URL}/final_results/reports", json=document)
+                    insert_result = requests.post(f"{MONGODB_SERVICE_URL}/final_results/reports", json=document)
                     
                     if insert_result.status_code == 200:
                         return jsonify({"status": "success", "message": "Results stored successfully"}), 200
@@ -119,7 +121,7 @@ def guarddog_final(repo_name):
                 
                 elif isinstance(results, list):  # If "results" is a list of issues
                     document = {"tool": "guarddog", "repo_name": repo_name, "malicious_indications": len(results)}
-                    insert_result = requests.post(f"http://{MONGODB_SERVICE_URL}/final_results/reports", json=document)
+                    insert_result = requests.post(f"{MONGODB_SERVICE_URL}/final_results/reports", json=document)
                     
                     if insert_result.status_code == 200:
                         return jsonify({"status": "success", "message": "Results stored successfully"}), 200

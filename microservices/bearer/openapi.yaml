@@ -1,0 +1,182 @@
+openapi: 3.0.0
+info:
+  title: CrimePoirot API
+  description: API documentation for the CrimePoirot project. This API enables repository analysis using Bearer and integration with MongoDB.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:5004
+    description: Local development server for Bearer analysis
+
+paths:
+  /analyze:
+    post:
+      summary: Analyze a repository using Bearer and store the results in MongoDB.
+      description: Clones a repository, runs a Bearer scan, and stores the vulnerabilities found in MongoDB.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                repo_url:
+                  type: string
+                  description: The URL of the Git repository to analyze.
+                  example: "https://github.com/user/repo.git"
+      responses:
+        '200':
+          description: Successfully analyzed the repository and stored the results.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  tool:
+                    type: string
+                    example: "bearer"
+                  message:
+                    type: string
+                    example: "Analysis complete"
+                  data:
+                    type: object
+                    properties:
+                      repo_name:
+                        type: string
+                        example: "repo"
+                      critical:
+                        type: integer
+                        example: 0
+                      high:
+                        type: integer
+                        example: 0
+                      medium:
+                        type: integer
+                        example: 0
+                      low:
+                        type: integer
+                        example: 0
+                      warning:
+                        type: integer
+                        example: 0
+                      vulnerabilities:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            severity:
+                              type: string
+                              example: "CRITICAL"
+                            description:
+                              type: string
+                              example: "CVE-1234 vulnerability"
+                            file:
+                              type: string
+                              example: "src/file.py"
+        '400':
+          description: Repository URL is required or invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  tool:
+                    type: string
+                    example: "bearer"
+                  message:
+                    type: string
+                    example: "Repository URL is required"
+                  data:
+                    type: object
+                    nullable: true
+        '500':
+          description: Error running the Bearer scan or storing the results in MongoDB.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  tool:
+                    type: string
+                    example: "bearer"
+                  message:
+                    type: string
+                    example: "Subprocess error: [error details]"
+                  data:
+                    type: object
+                    nullable: true
+          
+  /Bearer/{repo_name}/final_results:
+    get:
+      summary: Retrieve final Bearer results for a repository.
+      description: Fetches the Bearer scan results and stores the final vulnerability count in MongoDB.
+      parameters:
+        - name: repo_name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The name of the repository to retrieve final results for.
+          example: "repo"
+      responses:
+        '200':
+          description: Successfully retrieved and processed the Bearer results.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                    example: "Results stored successfully"
+        '404':
+          description: Report or results key not found in MongoDB.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  message:
+                    type: string
+                    example: "'report' field not found in the response"
+        '500':
+          description: Internal server error or failure to insert results into the `final_results` collection.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  message:
+                    type: string
+                    example: "Failed to insert results into final_results"
+        '502':
+          description: Failed to retrieve Bearer report for the repository from MongoDB.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  message:
+                    type: string
+                    example: "Failed to retrieve Bearer report for 'repo_name'"

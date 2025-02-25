@@ -1,0 +1,190 @@
+openapi: 3.0.0
+info:
+  title: CrimePoirot API
+  description: API for updating and creating the report.csv
+  version: 1.0.0
+servers:
+  - url: http://localhost:5008
+    description: Local Development Server
+paths:
+  /update_db:
+    post:
+      summary: Update the database with the latest security analysis results
+      operationId: updateDb
+      requestBody:
+        description: Payload containing the list of repositories and tools to analyze
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                repo_url:
+                  type: string
+                  example: "https://github.com/username/repo.git"
+                tools:
+                  type: array
+                  items:
+                    type: string
+                    example: ["Gitleaks", "Guarddog", "Safety", "Bearer"]
+              required:
+                - repo_url
+                - tools
+      responses:
+        '200':
+          description: Database update completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Database update completed"
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        repo:
+                          type: string
+                          example: "repo_name"
+                        status:
+                          type: string
+                          example: "success"
+                        details:
+                          type: object
+                          properties:
+                            gitleaks_leaks:
+                              type: integer
+                              example: 5
+                            guarddog_results:
+                              type: integer
+                              example: 3
+                            safety_vulnerabilities:
+                              type: integer
+                              example: 2
+                            bearer_critical:
+                              type: integer
+                              example: 1
+                            bearer_high:
+                              type: integer
+                              example: 2
+                            bearer_medium:
+                              type: integer
+                              example: 3
+                            bearer_low:
+                              type: integer
+                              example: 0
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Failed to update database"
+  
+  /create_db:
+    post:
+      summary: Create a new database with the security analysis results
+      operationId: createDb
+      requestBody:
+        description: Initialize or reset the database before populating it with new data
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {}
+      responses:
+        '200':
+          description: Database created successfully with the initial data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Database created successfully"
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        repo:
+                          type: string
+                          example: "repo_name"
+                        status:
+                          type: string
+                          example: "success"
+                        details:
+                          type: object
+                          properties:
+                            gitleaks_leaks:
+                              type: integer
+                              example: 5
+                            guarddog_results:
+                              type: integer
+                              example: 3
+                            safety_vulnerabilities:
+                              type: integer
+                              example: 2
+                            bearer_critical:
+                              type: integer
+                              example: 1
+                            bearer_high:
+                              type: integer
+                              example: 2
+                            bearer_medium:
+                              type: integer
+                              example: 3
+                            bearer_low:
+                              type: integer
+                              example: 0
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Failed to create database"
+components:
+  schemas:
+    RepoAnalysisResult:
+      type: object
+      properties:
+        repo:
+          type: string
+          example: "repo_name"
+        status:
+          type: string
+          example: "success"
+        details:
+          type: object
+          properties:
+            gitleaks_leaks:
+              type: integer
+              example: 5
+            guarddog_results:
+              type: integer
+              example: 3
+            safety_vulnerabilities:
+              type: integer
+              example: 2
+            bearer_critical:
+              type: integer
+              example: 1
+            bearer_high:
+              type: integer
+              example: 2
+            bearer_medium:
+              type: integer
+              example: 3
+            bearer_low:
+              type: integer
+              example: 0

@@ -1,0 +1,104 @@
+events {
+    worker_connections 1024;
+}
+
+http {
+    # Upstream block for API Gateway
+    upstream api_gateway {
+        server ${API_GATEWAY_IP}:5007;   
+        server ${API_GATEWAY_IP_2}:5007; 
+    }
+
+    # Upstream block for Update DB Service
+    upstream update_db_backend {
+        server ${UPDATE_DB_IP}:5008; 
+    }
+
+    upstream claude_api{
+        server ${CLAUDE_IP}:5014;
+    }
+
+    server {
+        listen 80;
+
+        # Route requests to /update_db
+        location /update_db {
+            proxy_pass http://update_db_backend;
+            proxy_set_header Content-Type "application/json";
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_redirect off;
+
+            proxy_connect_timeout 20000;
+            proxy_send_timeout 20000;
+            proxy_read_timeout 20000;
+        }
+
+         location /create_db {
+            proxy_pass http://update_db_backend;
+            proxy_set_header Content-Type "application/json";
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_redirect off;
+
+            proxy_connect_timeout 20000;
+            proxy_send_timeout 20000;
+            proxy_read_timeout 20000;
+        }
+
+
+        # Route requests to /analyze
+        location /analyze {
+            proxy_pass http://api_gateway;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_redirect off;
+
+            proxy_connect_timeout 20000;
+            proxy_send_timeout 200000;
+            proxy_read_timeout 200000;
+        }
+        location /percentile {
+            proxy_pass http://api_gateway;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_redirect off;
+
+            proxy_connect_timeout 20000;
+            proxy_send_timeout 200000;
+            proxy_read_timeout 200000;
+    }
+        location /final_results{
+            proxy_pass http://api_gateway;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_redirect off;
+
+            proxy_connect_timeout 20000;
+            proxy_send_timeout 200000;
+            proxy_read_timeout 200000;
+    }
+        location /scan{
+            proxy_pass http://claude_api;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_redirect off;
+
+            proxy_connect_timeout 20000;
+            proxy_send_timeout 200000;
+            proxy_read_timeout 200000;
+    }
+    }
+}
