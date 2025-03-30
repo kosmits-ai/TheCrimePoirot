@@ -13,7 +13,7 @@ The main idea behind this project was building a tool that can check for various
 
 ## **How To Use:**
 What steps to follow in order to use TheCrimePoirot:
-1. `git clone -b dockertest https://github.com/kosmits-ai/TheCrimePoirot.git`
+1. `git clone https://github.com/kosmits-ai/TheCrimePoirot.git`
 2. Define the `.env`.
 3. `docker login`
 4. Pull the required Docker images from [DockerHub](https://hub.docker.com/repository/docker/kosmits/thecrimepoirot/general):  
@@ -36,7 +36,7 @@ What steps to follow in order to use TheCrimePoirot:
 2. Select `Update DataBase` or `CreateDatabase` depend on your needs.
 
 ### How to use runtime runsc?
-Using runsc of gVisor is optional.We recommend runsc on tool's services for a better security protection.If you want to run sandboxed containers follow the following:
+Using runsc of gVisor is optional.We recommend runsc on tool's services for a better security protection. Linux OS needed. If you want to run sandboxed containers follow the following:
 1. Install gVisor runsc based on the [installation guide](https://gvisor.dev/docs/user_guide/install/).
 2. Define static IPs for services in order to communicate with each other.
 3. Follow [networking guide from Gvisor](https://gvisor.dev/docs/user_guide/networking/) in `/etc/docker/daemon.json`
