@@ -32,7 +32,7 @@ services:
       - 8.8.4.4  # Google DNS
 
   guarddog:
-    image: kosmits/thecrimepoirot:guarddog-1.0.1
+    image: kosmits/thecrimepoirot:guarddog-1.0.2
     ports:
       - "5002:5002"
     env_file:
@@ -141,8 +141,7 @@ services:
       - bearer
       - calculate_percentile
   frontend:
-    build:
-      context: ./microservices/frontend
+    image: kosmits/thecrimepoirot:frontend-1.0.3
     ports:
       - "8501:8501"
     env_file:
@@ -199,8 +198,7 @@ services:
     restart: always
 
   claude: 
-    build:
-      context: ./microservices/claude
+    image: kosmits/thecrimepoirot:claude-1.0.1
     ports:
       - "5014:5014"
     networks: 
