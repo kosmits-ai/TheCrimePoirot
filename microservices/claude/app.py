@@ -14,15 +14,12 @@ MONGO_URI = os.getenv("MONGO_URL")
 client = MongoClient(MONGO_URI)
 db = client["DiplomaThesis"]  # Database name
 
-def get_analysis(repo_name, tools):
+def get_analysis(repo_name, tools, max_findings=10):
     results = {}
     for tool in tools:
-        tool_results = {
-            tool :list(db[tool].find({"repo_name": repo_name} ))
-        }
+        tool_results = list(db[tool].find({"repo_name": repo_name}).limit(max_findings))  # Limit to max_findings
         if tool_results:
             results[tool] = tool_results
-
     return results
 from bson import ObjectId
 

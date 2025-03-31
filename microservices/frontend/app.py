@@ -119,35 +119,7 @@ def main():
             
             """
         )
-        nodes = [StreamlitFlowNode(id='1', pos=(100,100), data={'content': 'Enter Github URL'}, node_type='input', source_position='right', draggable=False),
-                    StreamlitFlowNode('2', (300,0), {'content': 'Select from available tools'}, 'default', 'bottom', 'left', draggable=False),
-                    StreamlitFlowNode('3', (300, 200), {'content': 'Define the weights'}, 'default', 'right', 'top', draggable=False),
-                    StreamlitFlowNode('4', (500, 100), {'content': 'Run analysis'}, 'default', 'right', 'left', draggable=False),
-                    StreamlitFlowNode('5', (700, 100), {'content': 'Choose tab'},'default', 'right', 'left', draggable=False),
-                    StreamlitFlowNode('6', (850,0), {'content': 'View Analyis report'}, 'default','bottom','bottom', draggable=False),
-                    StreamlitFlowNode('7', (850,200), {'content': 'View CrimePoirot report'}, 'default','top', draggable=False),
-                    StreamlitFlowNode('8', (1000,100), {'content': 'Ask Claude'}, 'default','left','left',draggable=False)
-
-]
-
-        edges = [StreamlitFlowEdge('1-2', '1', '2', animated=True),
-                    StreamlitFlowEdge('2-3', '2', '3', animated=True),
-                    StreamlitFlowEdge('3-4', '3', '4', animated=True),
-                    StreamlitFlowEdge('4-5', '4', '5', animated=True),
-                    StreamlitFlowEdge('5-6', '5', '6', animated=True),
-                    StreamlitFlowEdge('5-7', '5', '7', animated=True),
-                    StreamlitFlowEdge('5-8', '5', '8', animated=True)
-]
-
-        state = StreamlitFlowState(nodes, edges)
-
-        updated_state = streamlit_flow('ret_val_flow',
-                            state,
-                            fit_view=True,
-                            get_node_on_click=True,
-                            get_edge_on_click=True)
-
-        #st.write(f"Clicked on: {updated_state.selected_id}")  
+        
         
 
 
@@ -271,9 +243,12 @@ def main():
             st.success("Weights are valid. The sum of weights is 1.")
             run_analysis_disabled = False  # Enable the "Run Analysis" button
 
-        st.session_state.setdefault("analysis_successful", False)
-        st.session_state.setdefault("claude_result", None)
-
+        if "result" not in st.session_state:
+            st.session_state.result = None
+        if "analysis_successful" not in st.session_state:
+            st.session_state.analysis_successful = False
+        if "claude_result" not in st.session_state:
+            st.session_state.claude_result = None
         payload = {
                 "repo_url": repo_url,
                 "tools": [tool for tool, selected in selected_tools.items() if selected],
@@ -681,4 +656,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
