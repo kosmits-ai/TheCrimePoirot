@@ -24,7 +24,7 @@ services:
         ipv4_address: ${GITLEAKS_IP}
     depends_on:
       - mongo-service
-    runtime: runsc
+    runtime: runc
     volumes:
       - /home/vboxuser/Documents/RepoForTest:/app/RepoForTest
     dns:
@@ -42,7 +42,7 @@ services:
         ipv4_address: ${GUARDDOG_IP}
     depends_on:
       - mongo-service
-    runtime: runsc
+    runtime: runc
     volumes:
       - /home/vboxuser/Documents/RepoForTest:/app/RepoForTest
     dns:
@@ -60,7 +60,7 @@ services:
         ipv4_address: ${SAFETY_IP}
     depends_on:
       - mongo-service
-    runtime: runsc
+    runtime: runc
     volumes:
       - /home/vboxuser/Documents/RepoForTest:/app/RepoForTest
     dns:
@@ -76,7 +76,7 @@ services:
     networks:
       crimepoirot_network:
         ipv4_address: ${BEARER_IP}
-    runtime: runsc
+    runtime: runc
     depends_on:
       - mongo-service
     volumes:
@@ -141,7 +141,8 @@ services:
       - bearer
       - calculate_percentile
   frontend:
-    image: kosmits/thecrimepoirot:frontend-1.0.3
+    build:
+      context: ./microservices/frontend
     ports:
       - "8501:8501"
     env_file:
@@ -198,7 +199,8 @@ services:
     restart: always
 
   claude: 
-    image: kosmits/thecrimepoirot:claude-1.0.1
+    build:
+      context: ./microservices/claude
     ports:
       - "5014:5014"
     networks: 
